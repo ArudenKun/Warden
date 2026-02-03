@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/solution/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Warden.Core/Warden.Core.csproj" />
+    <Project Path="src/Warden.Hosting/Warden.Hosting.csproj" />
+    <Project Path="src/Warden/Warden.csproj" />
+  </Folder>
+</Solution>
