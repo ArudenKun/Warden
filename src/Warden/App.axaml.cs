@@ -1,36 +1,36 @@
-using System.Globalization;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using Avalonia.Markup.Xaml.MarkupExtensions;
-using Warden.Translations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Volo.Abp;
+using Warden.Abp;
 using Warden.ViewModels;
 using Warden.Views;
 using ZLinq;
 
 namespace Warden;
 
-public sealed class App : Application
+public sealed class App : AbpAvaloniaApplication<WardenModule, MainWindow>
 {
     public override void Initialize()
     {
-        I18NExtension.Culture = new CultureInfo("en-US");
-        LocaleKeys.__LocaleProvider.Initialize();
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+    protected override void ConfigureAbpCreationOptions(AbpApplicationCreationOptions options)
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit.
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
-            DisableAvaloniaDataAnnotationValidation();
-            desktop.MainWindow = new MainWindow { DataContext = new MainWindowViewModel() };
-        }
+        options.UseAutofac();
+        options.Services.AddLogging(builder => builder.ClearProviders().AddSerilog(dispose: true));
+    }
 
-        base.OnFrameworkInitializationCompleted();
+    protected override MainWindow CreateWindow(IServiceProvider serviceProvider)
+    {
+        DisableAvaloniaDataAnnotationValidation();
+        return (
+            DataTemplates[0].Build(serviceProvider.GetRequiredService<MainWindowViewModel>())
+            as MainWindow
+        )!;
     }
 
     private static void DisableAvaloniaDataAnnotationValidation()

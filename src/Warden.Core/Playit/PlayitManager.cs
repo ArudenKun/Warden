@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Warden.Core.Playit;
 
 [AutoExtractInterface]
-internal class PlayitManager : IPlayitManager
+public class PlayitManager : IPlayitManager
 {
     public PlayitManager(ILogger<PlayitManager> logger) { }
 

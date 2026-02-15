@@ -1,1 +1,20 @@
-﻿[assembly: ZLinq.ZLinqDropInAttribute("ZLinq", ZLinq.DropInGenerateTypes.Collection)]
+﻿using Avalonia.Metadata;
+using R3.ObservableEvents;
+
+[assembly: ZLinq.ZLinqDropInAttribute("ZLinq", ZLinq.DropInGenerateTypes.Collection)]
+[assembly: GenerateStaticEventObservables(typeof(TaskScheduler))]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Converters")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Models")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Utilities")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.ViewModels")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.ViewModels.Components")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.ViewModels.Pages")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.ViewModels.Dialogs")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Views")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Views.Components")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Views.Pages")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Views.Dialogs")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Controls")]
+[assembly: XmlnsDefinition("https://github.com/arudenkun/Warden", "Warden.Controls.WebView")]
+[assembly: XmlnsPrefix("https://github.com/arudenkun/Warden", "warden")]

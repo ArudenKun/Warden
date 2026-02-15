@@ -1,8 +1,9 @@
 using Avalonia.Controls;
+using Warden.ViewModels;
 
 namespace Warden.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : SukiWindow<MainWindowViewModel>
 {
     public MainWindow()
     {
