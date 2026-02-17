@@ -5,13 +5,14 @@ using System.Text.Json.Serialization;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Volo.Abp.DependencyInjection;
 using Warden.Settings;
 using Warden.Utilities;
 
 namespace Warden.Services.Settings;
 
 [AutoExtractInterface(Interfaces = [typeof(IDisposable)])]
-public partial class SettingsService : ISettingsService
+public partial class SettingsService : ISettingsService, ISingletonDependency
 {
     private readonly ILogger<SettingsService> _logger;
     private readonly ConcurrentDictionary<Type, Lazy<object>> _settings = new();
@@ -230,6 +231,8 @@ public partial class SettingsService : ISettingsService
         return name;
     }
 
+    [JsonSerializable(typeof(GeneralSetting))]
+    [JsonSerializable(typeof(AppearanceSetting))]
     [JsonSerializable(typeof(LoggingSetting))]
     [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
     private sealed partial class SettingsServiceSerializerContext : JsonSerializerContext;

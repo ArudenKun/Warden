@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
+using CommunityToolkit.Mvvm.DependencyInjection;
 using Warden.Utilities;
 using Warden.ViewModels;
 
@@ -8,6 +9,16 @@ namespace Warden.Views;
 public abstract class UserControl<TViewModel> : UserControl, IView<TViewModel>
     where TViewModel : ViewModel
 {
+    protected UserControl()
+    {
+#if DEBUG
+        if (Design.IsDesignMode)
+        {
+            DataContext = Ioc.Default.GetRequiredService<TViewModel>();
+        }
+#endif
+    }
+
     public new TViewModel DataContext
     {
         get =>

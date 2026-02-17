@@ -1,99 +1,108 @@
-﻿using Avalonia.Threading;
+﻿using Autofac;
+using Autofac.Core;
+using Autofac.Core.Resolving.Pipeline;
+using Avalonia.Controls;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using R3;
-using R3.ObservableEvents;
-using Serilog.Core;
+using ServiceScan.SourceGenerator;
+using SukiUI.Dialogs;
+using SukiUI.Toasts;
 using Volo.Abp;
-using Volo.Abp.BackgroundJobs.Hangfire;
+using Volo.Abp.Autofac;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Modularity;
 using Warden.Services.Settings;
 using Warden.Settings;
 using Warden.Utilities;
+using Warden.ViewModels;
 
 namespace Warden;
 
-[DependsOn(typeof(AbpBackgroundJobsHangfireModule))]
-public sealed class WardenModule : AbpModule
+[DependsOn(typeof(AbpAutofacModule))]
+public sealed partial class WardenModule : AbpModule
 {
-    private IDisposable? _subscriptions;
-
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddObjectAccessor<LoggingLevelSwitch>();
+        context.Services.AddConventionalRegistrar(new ViewModelConventionalRegistrar());
+        context.Services.AddObjectAccessor<TopLevel>();
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddServices();
         context.Services.AddSingleton(sp =>
-            sp.GetRequiredService<IObjectAccessor<LoggingLevelSwitch>>().Value
-            ?? throw new InvalidOperationException("LoggingLevelSwitch is not set")
+            sp.GetRequiredService<IObjectAccessor<TopLevel>>().Value
+            ?? throw new InvalidOperationException("TopLevel is not yet set")
         );
+        context.Services.AddTransient(sp => sp.GetRequiredService<TopLevel>().Clipboard!);
+        context.Services.AddTransient(sp => sp.GetRequiredService<TopLevel>().StorageProvider);
+        context.Services.AddTransient(sp => sp.GetRequiredService<TopLevel>().Launcher);
+        context.Services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
+        context.Services.AddSingleton<ISukiToastManager, SukiToastManager>();
+        context.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
+
+        var containerBuilder = context.Services.GetObject<ContainerBuilder>();
+        ConfigureMessenger(containerBuilder);
     }
+
+    public override void PostConfigureServices(ServiceConfigurationContext context) { }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         var settingsService = context.ServiceProvider.GetRequiredService<ISettingsService>();
         var loggingSetting = settingsService.Get<LoggingSetting>();
-        context.ServiceProvider.GetRequiredService<ObjectAccessor<LoggingLevelSwitch>>().Value =
-            LogHelper.LoggingLevelSwitch;
         LogHelper.Initialize(loggingSetting);
-
-        _subscriptions = Disposable.Combine(
-            AppDomain
-                .CurrentDomain.Events()
-                .UnhandledException.Subscribe(e =>
-                    HandleUnhandledException(
-                        (Exception)e.ExceptionObject,
-                        AppHelper.Name,
-                        context.ServiceProvider
-                    )
-                ),
-            RxEvents.TaskSchedulerUnobservedTaskException.Subscribe(e =>
-            {
-                HandleUnhandledException(
-                    e.Exception,
-                    $"{AppHelper.Name} Task",
-                    context.ServiceProvider
-                );
-                e.SetObserved();
-            }),
-            Dispatcher
-                .UIThread.Events()
-                .UnhandledException.Subscribe(e =>
-                {
-                    HandleUnhandledException(
-                        e.Exception,
-                        $"{AppHelper.Name} UI",
-                        context.ServiceProvider
-                    );
-                    e.Handled = true;
-                })
-        );
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
         var loggerFactory = context.ServiceProvider.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger<WardenModule>();
-        logger.LogInformation("Shutting Down Warden");
-        _subscriptions?.Dispose();
+        var logger = loggerFactory.CreateLogger(AppHelper.Name);
+        logger.LogInformation("Shutting Down");
         LogHelper.Cleanup();
     }
 
-    private void HandleUnhandledException(
-        Exception exception,
-        string category,
-        IServiceProvider serviceProvider
+    private void ConfigureMessenger(ContainerBuilder builder)
+    {
+        builder.ComponentRegistryBuilder.Registered += ComponentRegistryBuilderOnRegistered;
+    }
+
+    private void ComponentRegistryBuilderOnRegistered(
+        object? sender,
+        ComponentRegisteredEventArgs e
     )
     {
-        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger(category);
-        logger.LogError(exception, "Unhandled Exception");
-        // DispatchHelper.Invoke(() =>
-        //     _toastService.ShowExceptionToast(exception, $"{category} Exception")
-        // );
+        e.ComponentRegistration.PipelineBuilding += ComponentRegistrationOnPipelineBuilding;
+    }
+
+    private void ComponentRegistrationOnPipelineBuilding(object? sender, IResolvePipelineBuilder e)
+    {
+        e.Use(
+            PipelinePhase.Activation,
+            (ctx, next) =>
+            {
+                next(ctx);
+                if (!ctx.NewInstanceActivated || ctx.Instance is null)
+                    return;
+
+                ConfigureMessenger(ctx.Instance);
+            }
+        );
+    }
+
+    [GenerateServiceRegistrations(
+        AssignableTo = typeof(IRecipient<>),
+        CustomHandler = nameof(ConfigureMessengerHandler)
+    )]
+    private partial void ConfigureMessenger(object instance);
+
+    private void ConfigureMessengerHandler<T, TMessage>(object instance)
+        where T : class, IRecipient<TMessage>
+        where TMessage : class
+    {
+        if (instance is T recipient)
+        {
+            WeakReferenceMessenger.Default.Register(recipient);
+        }
     }
 }

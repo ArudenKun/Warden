@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Humanizer;
-using Microsoft.Extensions.Logging;
+using Serilog.Events;
 
 namespace Warden.Settings;
 
@@ -10,7 +10,7 @@ public sealed partial class LoggingSetting : ObservableObject
         "[{Timestamp:yyyy-MM-dd HH:mm:ss}][{Level:u3}][{SourceContext}] {Message:lj}{NewLine}{Exception}";
 
     [ObservableProperty]
-    public partial LogLevel LogLevel { get; set; } = LogLevel.Information;
+    public partial LogEventLevel LogEventLevel { get; set; } = LogEventLevel.Information;
 
     [ObservableProperty]
     public partial TimeSpan RetainedFileTimeLimit { get; set; } = 30.Days();

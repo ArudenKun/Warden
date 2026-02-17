@@ -1,4 +1,5 @@
-﻿using Avalonia.Input.Platform;
+﻿using System.Diagnostics;
+using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using R3;
 using Volo.Abp.DependencyInjection;
+using Warden.Services;
 using Warden.Services.Settings;
 using Warden.Settings;
 
@@ -21,20 +23,18 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
 
     protected IMessenger Messenger => ServiceProvider.GetRequiredService<IMessenger>();
 
-    // protected ToastService ToastService => ServiceProvider.GetRequiredService<ToastService>();
+    protected IToastService ToastService => ServiceProvider.GetRequiredService<IToastService>();
 
-    // protected DialogService DialogService => ServiceProvider.GetRequiredService<DialogService>();
+    protected IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
     protected SettingsService SettingsService =>
         ServiceProvider.GetRequiredService<SettingsService>();
 
-    // protected DataService DataService => ServiceProvider.GetRequiredService<DataService>();
+    protected IThemeService ThemeService => ServiceProvider.GetRequiredService<IThemeService>();
 
-    // protected ThemeService ThemeService => ServiceProvider.GetRequiredService<ThemeService>();
+    public GeneralSetting GeneralOptions => SettingsService.Get<GeneralSetting>();
 
-    // public GeneralOptions GeneralOptions => SettingsService.Get<GeneralOptions>();
-
-    // public AppearanceOptions AppearanceOptions => SettingsService.Get<AppearanceOptions>();
+    public AppearanceSetting AppearanceSetting => SettingsService.Get<AppearanceSetting>();
 
     public LoggingSetting LoggingSetting => SettingsService.Get<LoggingSetting>();
 
@@ -82,10 +82,10 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
             return shouldCatch;
         }
 
-        // Logger.LogException(ex);
+        Logger.LogException(ex);
         if (shouldDisplay)
         {
-            // ToastService.ShowExceptionToast(ex, "Error", ex.ToStringDemystified());
+            ToastService.ShowExceptionToast(ex, "Error", ex.ToStringDemystified());
         }
 
         return shouldCatch;

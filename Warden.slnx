@@ -11,4 +11,5 @@
     <Project Path="src/Warden.SourceGenerators/Warden.SourceGenerators.csproj" />
     <Project Path="src/Warden/Warden.csproj" />
   </Folder>
+  <Folder Name="/src/lib/" />
 </Solution>

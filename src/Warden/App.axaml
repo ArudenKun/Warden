@@ -13,5 +13,6 @@
 
     <Application.Styles>
         <suki:SukiTheme ThemeColor="Blue" />
+        <StyleInclude Source="/WardenStyles.axaml" />
     </Application.Styles>
 </Application>

@@ -1,0 +1,15 @@
+﻿<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:warden="https://github.com/arudenkun/Warden">
+    <SolidColorBrush x:Key="IncorrectInputBrush">Crimson</SolidColorBrush>
+    <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
+    <ControlTheme
+        x:Key="{x:Type warden:NumericTextBox}"
+        BasedOn="{StaticResource SukiTextBox}"
+        TargetType="warden:NumericTextBox">
+        <Style Selector="^:incorrecttext">
+            <Setter Property="Foreground" Value="{StaticResource IncorrectInputBrush}" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

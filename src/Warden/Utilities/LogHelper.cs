@@ -32,8 +32,8 @@ public static class LogHelper
             return;
 
         _subscription = loggingSetting
-            .ObservePropertyChanged(x => x.LogLevel)
-            .Subscribe(x => LoggingLevelSwitch?.MinimumLevel = x.ToLogEventLevel());
+            .ObservePropertyChanged(x => x.LogEventLevel)
+            .Subscribe(x => LoggingLevelSwitch?.MinimumLevel = x);
 
         // Flush();
         _isInitialized = true;

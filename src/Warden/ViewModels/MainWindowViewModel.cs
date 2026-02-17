@@ -1,25 +1,42 @@
-﻿using System.Security.Cryptography;
-using Avalonia.Controls;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using SukiUI.Dialogs;
+using SukiUI.Toasts;
 using Volo.Abp.DependencyInjection;
-using Warden.Messaging;
+using Warden.Messaging.Messages;
+using Warden.ViewModels.Components;
 
 namespace Warden.ViewModels;
 
 [Dependency(ServiceLifetime.Singleton)]
-public partial class MainWindowViewModel
-    : ViewModel,
-        IRequest<MainWindowViewModel, string>,
-        IRecipient<string>
+public sealed partial class MainWindowViewModel : ViewModel, IRecipient<SplashViewFinishedMessage>
 {
-    public string Greeting =>
-        $"Welcome to Avalonia! {WeakReferenceMessenger.Default.IsRegistered<RandomNumberGenerator>(this)}";
+    public required ISukiToastManager SukiToastManager { get; init; }
+    public required ISukiDialogManager SukiDialogManager { get; init; }
 
-    public string Request(MainWindowViewModel instance)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMainView))]
+    [NotifyCanExecuteChangedFor(nameof(ShowPageCommand))]
+    public partial ViewModel ContentViewModel { get; set; } = null!;
+
+    public bool IsMainView => ContentViewModel is MainViewModel;
+
+    public override void OnLoaded()
     {
-        return instance.Greeting;
+        ContentViewModel = ServiceProvider.GetRequiredService<SplashViewModel>();
     }
 
-    public void Receive(string message) { }
+    [RelayCommand(CanExecute = nameof(IsMainView))]
+    private Task ShowPageAsync(Type pageType)
+    {
+        Messenger.Send(new ShowPageMessage(pageType));
+        return Task.CompletedTask;
+    }
+
+    public void Receive(SplashViewFinishedMessage message)
+    {
+        ContentViewModel = ServiceProvider.GetRequiredService<MainViewModel>();
+    }
 }

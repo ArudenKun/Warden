@@ -1,36 +1,71 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Serilog;
-using Volo.Abp;
-using Warden.Abp;
+using R3;
+using R3.ObservableEvents;
+using Volo.Abp.DependencyInjection;
+using Warden.Utilities;
 using Warden.ViewModels;
-using Warden.Views;
 using ZLinq;
 
 namespace Warden;
 
-public sealed class App : AbpAvaloniaApplication<WardenModule, MainWindow>
+public sealed class App : Application, IDisposable
 {
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILoggerFactory _loggerFactory;
+
+    private IDisposable? _subscriptions;
+
+    public App(IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
+    {
+        _serviceProvider = serviceProvider;
+        _loggerFactory = loggerFactory;
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        _subscriptions = Disposable.Combine(
+            AppDomain
+                .CurrentDomain.Events()
+                .UnhandledException.Subscribe(e =>
+                    HandleUnhandledException((Exception)e.ExceptionObject, AppHelper.Name)
+                ),
+            RxEvents.TaskSchedulerUnobservedTaskException.Subscribe(e =>
+            {
+                HandleUnhandledException(e.Exception, $"{AppHelper.Name} Task");
+                e.SetObserved();
+            }),
+            Dispatcher
+                .UIThread.Events()
+                .UnhandledException.Subscribe(e =>
+                {
+                    HandleUnhandledException(e.Exception, $"{AppHelper.Name} UI");
+                    e.Handled = true;
+                })
+        );
     }
 
-    protected override void ConfigureAbpCreationOptions(AbpApplicationCreationOptions options)
-    {
-        options.UseAutofac();
-        options.Services.AddLogging(builder => builder.ClearProviders().AddSerilog(dispose: true));
-    }
-
-    protected override MainWindow CreateWindow(IServiceProvider serviceProvider)
+    public override void OnFrameworkInitializationCompleted()
     {
         DisableAvaloniaDataAnnotationValidation();
-        return (
-            DataTemplates[0].Build(serviceProvider.GetRequiredService<MainWindowViewModel>())
-            as MainWindow
-        )!;
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            _serviceProvider.GetRequiredService<ObjectAccessor<TopLevel>>().Value =
+                desktop.MainWindow =
+                    DataTemplates[0]
+                        .Build(_serviceProvider.GetRequiredService<MainWindowViewModel>())
+                    as Window;
+        }
+
+        base.OnFrameworkInitializationCompleted();
     }
 
     private static void DisableAvaloniaDataAnnotationValidation()
@@ -46,5 +81,19 @@ public sealed class App : AbpAvaloniaApplication<WardenModule, MainWindow>
         {
             BindingPlugins.DataValidators.Remove(plugin);
         }
+    }
+
+    public void Dispose()
+    {
+        _subscriptions?.Dispose();
+    }
+
+    private void HandleUnhandledException(Exception exception, string category)
+    {
+        var logger = _loggerFactory.CreateLogger(category);
+        logger.LogError(exception, "Unhandled Exception");
+        // DispatchHelper.Invoke(() =>
+        //     _toastService.ShowExceptionToast(exception, $"{category} Exception")
+        // );
     }
 }

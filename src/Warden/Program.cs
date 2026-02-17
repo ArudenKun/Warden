@@ -1,37 +1,60 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Input.Platform;
-using Avalonia.Platform.Storage;
-using CommunityToolkit.Mvvm.Messaging;
+﻿using Autofac;
+using Avalonia;
+using CommunityToolkit.Mvvm.DependencyInjection;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
 using Velopack;
+using Volo.Abp;
+using Volo.Abp.IO;
+using Volo.Abp.Modularity;
+using Volo.Abp.Modularity.PlugIns;
 using Warden.Core.Extensions;
+using Warden.Hosting;
 using Warden.Services.Settings;
 using Warden.Settings;
 using Warden.Utilities;
-using Warden.Utilities.Extensions;
 
 namespace Warden;
 
 public static class Program
 {
+    private static bool _isInitialized;
+
+    private static IHost Host { get; } =
+        new HostBuilder()
+            .ConfigureDefaults(null)
+            .ConfigureAbpApplication<WardenModule>(options =>
+            {
+                var pluginDir = AppHelper.DataDir.CombinePath("Plugins");
+                DirectoryHelper.CreateIfNotExists(pluginDir);
+                options.PlugInSources.AddFolder(pluginDir);
+            })
+            .ConfigureAvaloniaHosting<App>(appBuilder =>
+                appBuilder
+                    .UseR3(ex => LogHelper.Error(ex, "Unhandled R3 Exception"))
+                    .UsePlatformDetect()
+                    .WithInterFont()
+                    .LogToTrace()
+            )
+            .UseAutofac()
+            .UseConsoleLifetime()
+            .UseSerilog(dispose: true)
+            .Build();
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args)
+    public static void Main()
     {
         var settingService = new SettingsService();
         var loggingSetting = settingService.Get<LoggingSetting>();
-        LogHelper.LoggingLevelSwitch = new LoggingLevelSwitch(
-            loggingSetting.LogLevel.ToLogEventLevel()
-        );
+        LogHelper.LoggingLevelSwitch = new LoggingLevelSwitch(loggingSetting.LogEventLevel);
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(LogHelper.LoggingLevelSwitch)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -54,42 +77,65 @@ public static class Program
         try
         {
             VelopackApp.Build().SetLogger(new VelopackLogger()).Run();
-            LogHelper.Information("Warden", "Starting");
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            if (!_isInitialized)
+            {
+                Host.Initialize();
+                _isInitialized = true;
+            }
+#if DEBUG
+            Ioc.Default.ConfigureServices(Host.Services);
+#endif
+            Host.Run();
         }
         catch (Exception e)
         {
-            LogHelper.Error(e, "Unhandled Exception");
+            var loggerFactory = Host.Services.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger(AppHelper.Name);
+            logger.LogException(e);
             throw;
         }
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     // ReSharper disable once UnusedMember.Global
-    public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder
-            .Configure<App>()
-            .UseR3(ex => LogHelper.Error(ex, "Unhandled R3 Exception"))
-            .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace();
-
-    public static IServiceCollection AddServices(this IServiceCollection services)
+    public static AppBuilder BuildAvaloniaApp()
     {
-        // Avalonia
-        services.AddSingleton<LoggingLevelSwitch>();
-        services.AddTransient<IClipboard>(sp => sp.GetRequiredService<TopLevel>().Clipboard!);
-        services.AddTransient<IStorageProvider>(sp =>
-            sp.GetRequiredService<TopLevel>().StorageProvider
-        );
-        services.AddTransient<ILauncher>(sp => sp.GetRequiredService<TopLevel>().Launcher);
-        services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
-        services.AddSingleton<ISukiToastManager, SukiToastManager>();
-
-        services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
-        services.AddSingleton<VelopackLogger>();
-
-        services.AddSingleton<ISettingsService, SettingsService>();
-        return services;
+        if (!_isInitialized)
+        {
+            Host.Initialize();
+            _isInitialized = true;
+        }
+#if DEBUG
+        Ioc.Default.ConfigureServices(Host.Services);
+#endif
+        return Host.Services.GetRequiredService<AppBuilder>();
     }
+
+    private static void Initialize(this IHost host)
+    {
+        var application =
+            host.Services.GetRequiredService<IAbpApplicationWithExternalServiceProvider>();
+        var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+        applicationLifetime.ApplicationStopping.Register(() => application.ShutdownAsync());
+        applicationLifetime.ApplicationStopped.Register(() => application.Dispose());
+        application.Initialize(host.Services);
+    }
+
+    private static IHostBuilder ConfigureAbpApplication<TStartupModule>(
+        this IHostBuilder builder,
+        Action<AbpApplicationCreationOptions>? configure = null
+    )
+        where TStartupModule : IAbpModule =>
+        builder.ConfigureServices(
+            (ctx, services) =>
+                services.AddApplication<TStartupModule>(options =>
+                {
+                    options.Services.ReplaceConfiguration(ctx.Configuration);
+                    configure?.Invoke(options);
+                    if (options.Environment.IsNullOrWhiteSpace())
+                    {
+                        options.Environment = ctx.HostingEnvironment.EnvironmentName;
+                    }
+                })
+        );
 }

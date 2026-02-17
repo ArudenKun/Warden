@@ -1,4 +1,6 @@
-﻿using Avalonia.Interactivity;
+﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
+using CommunityToolkit.Mvvm.DependencyInjection;
 using SukiUI.Controls;
 using Warden.Utilities;
 using Warden.ViewModels;
@@ -8,6 +10,16 @@ namespace Warden.Views;
 public abstract class SukiWindow<TViewModel> : SukiWindow, IView<TViewModel>
     where TViewModel : ViewModel
 {
+    protected SukiWindow()
+    {
+#if DEBUG
+        if (Design.IsDesignMode)
+        {
+            DataContext = Ioc.Default.GetRequiredService<TViewModel>();
+        }
+#endif
+    }
+
     public new TViewModel DataContext
     {
         get =>

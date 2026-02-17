@@ -1,20 +1,35 @@
-<Window
-    x:Class="Warden.Views.MainWindow"
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="using:Warden.ViewModels"
-    Title="Warden"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
-    x:DataType="vm:MainWindowViewModel"
-    Icon="/Assets/avalonia-logo.ico"
-    mc:Ignorable="d">
-
-    <TextBlock
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Text="{Binding Greeting}" />
-
-</Window>
+<suki:SukiWindow
+x:Class="Warden.Views.MainWindow"
+xmlns="https://github.com/avaloniaui"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:suki="https://github.com/kikipoulet/SukiUI"
+xmlns:warden="https://github.com/arudenkun/Warden"
+Title="Warden"
+d:DesignHeight="450"
+d:DesignWidth="800"
+x:DataType="warden:MainWindowViewModel"
+Icon="/Assets/logo.ico"
+mc:Ignorable="d">
+	<suki:SukiWindow.Hosts>
+		<suki:SukiDialogHost Manager="{Binding SukiDialogManager}" />
+		<suki:SukiToastHost Manager="{Binding SukiToastManager}" />
+	</suki:SukiWindow.Hosts>
+	<suki:SukiWindow.LogoContent>
+		<Image
+		Width="20"
+		Height="20"
+		VerticalAlignment="Center"
+		Source="/Assets/logo.ico" />
+	</suki:SukiWindow.LogoContent>
+	<suki:SukiWindow.RightWindowTitleBarControls>
+		<Button
+		Classes="WindowControlsButton"
+		Command="{Binding ShowPageCommand}"
+		CommandParameter="{x:Type warden:SettingsPageViewModel}"
+		Content="{LucideIconContent Settings}"
+		IsVisible="{Binding IsMainView}" />
+	</suki:SukiWindow.RightWindowTitleBarControls>
+	<suki:SukiTransitioningContentControl Content="{Binding ContentViewModel}" />
+</suki:SukiWindow>

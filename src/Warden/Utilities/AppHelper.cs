@@ -36,8 +36,8 @@ public static class AppHelper
         }
     }
 
-    public static string LogsDir => DataDir.CombinePath("logs");
+    public static string LogsDir => DataDir.CombinePath("Logs");
     public const string SettingsFileName = "settings.json";
     public static string SettingsPath => DataDir.CombinePath(SettingsFileName);
-    public static string ToolsDir => DataDir.CombinePath("tools");
+    public static string ToolsDir => DataDir.CombinePath("Tools");
 }
