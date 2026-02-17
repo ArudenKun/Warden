@@ -1,9 +1,12 @@
 ﻿using Avalonia.Collections;
 using Lucide.Avalonia;
+using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.DependencyInjection;
 using ZLinq;
 
 namespace Warden.ViewModels.Pages;
 
+[Dependency(ServiceLifetime.Singleton)]
 public sealed class SettingsPageViewModel : PageViewModel
 {
     public SettingsPageViewModel()

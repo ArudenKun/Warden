@@ -9,6 +9,9 @@ using Microsoft.Extensions.Logging;
 using R3;
 using R3.ObservableEvents;
 using Volo.Abp.DependencyInjection;
+using Warden.Services;
+using Warden.Services.Settings;
+using Warden.Settings;
 using Warden.Utilities;
 using Warden.ViewModels;
 using ZLinq;
@@ -31,6 +34,12 @@ public sealed class App : Application, IDisposable
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
+        var themeService = _serviceProvider.GetRequiredService<IThemeService>();
+        var loggingSetting = settingsService.Get<LoggingSetting>();
+        LogHelper.Initialize(loggingSetting);
+        themeService.Initialize();
 
         _subscriptions = Disposable.Combine(
             AppDomain

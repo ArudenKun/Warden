@@ -1,25 +1,22 @@
-﻿using Autofac;
-using Autofac.Core;
-using Autofac.Core.Resolving.Pipeline;
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceScan.SourceGenerator;
+using StatePulse.Net;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp;
 using Volo.Abp.Autofac;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Modularity;
-using Warden.Services.Settings;
-using Warden.Settings;
+using Volo.Abp.Quartz;
 using Warden.Utilities;
 using Warden.ViewModels;
 
 namespace Warden;
 
-[DependsOn(typeof(AbpAutofacModule))]
+[DependsOn(typeof(AbpAutofacModule), typeof(AbpQuartzModule))]
 public sealed partial class WardenModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
@@ -41,17 +38,8 @@ public sealed partial class WardenModule : AbpModule
         context.Services.AddSingleton<ISukiToastManager, SukiToastManager>();
         context.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
-        var containerBuilder = context.Services.GetObject<ContainerBuilder>();
-        ConfigureMessenger(containerBuilder);
-    }
-
-    public override void PostConfigureServices(ServiceConfigurationContext context) { }
-
-    public override void OnApplicationInitialization(ApplicationInitializationContext context)
-    {
-        var settingsService = context.ServiceProvider.GetRequiredService<ISettingsService>();
-        var loggingSetting = settingsService.Get<LoggingSetting>();
-        LogHelper.Initialize(loggingSetting);
+        context.Services.AddStatePulseServices();
+        ConfigureStatePulse(context.Services);
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
@@ -62,47 +50,25 @@ public sealed partial class WardenModule : AbpModule
         LogHelper.Cleanup();
     }
 
-    private void ConfigureMessenger(ContainerBuilder builder)
-    {
-        builder.ComponentRegistryBuilder.Registered += ComponentRegistryBuilderOnRegistered;
-    }
-
-    private void ComponentRegistryBuilderOnRegistered(
-        object? sender,
-        ComponentRegisteredEventArgs e
-    )
-    {
-        e.ComponentRegistration.PipelineBuilding += ComponentRegistrationOnPipelineBuilding;
-    }
-
-    private void ComponentRegistrationOnPipelineBuilding(object? sender, IResolvePipelineBuilder e)
-    {
-        e.Use(
-            PipelinePhase.Activation,
-            (ctx, next) =>
-            {
-                next(ctx);
-                if (!ctx.NewInstanceActivated || ctx.Instance is null)
-                    return;
-
-                ConfigureMessenger(ctx.Instance);
-            }
-        );
-    }
-
     [GenerateServiceRegistrations(
-        AssignableTo = typeof(IRecipient<>),
-        CustomHandler = nameof(ConfigureMessengerHandler)
+        AssignableTo = typeof(IAction),
+        TypeNameFilter = "*Action",
+        CustomHandler = nameof(ConfigureStatePulseHandler)
     )]
-    private partial void ConfigureMessenger(object instance);
+    [GenerateServiceRegistrations(
+        AssignableTo = typeof(IStateFeature),
+        TypeNameFilter = "*State",
+        CustomHandler = nameof(ConfigureStatePulseHandler)
+    )]
+    [GenerateServiceRegistrations(
+        AssignableTo = typeof(IEffect<>),
+        TypeNameFilter = "*Effect",
+        CustomHandler = nameof(ConfigureStatePulseHandler)
+    )]
+    private partial void ConfigureStatePulse(IServiceCollection services);
 
-    private void ConfigureMessengerHandler<T, TMessage>(object instance)
-        where T : class, IRecipient<TMessage>
-        where TMessage : class
+    private static void ConfigureStatePulseHandler<T>(IServiceCollection services)
     {
-        if (instance is T recipient)
-        {
-            WeakReferenceMessenger.Default.Register(recipient);
-        }
+        services.AddStatePulseService<T>();
     }
 }

@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp.DependencyInjection;
@@ -37,6 +38,7 @@ public sealed partial class MainWindowViewModel : ViewModel, IRecipient<SplashVi
 
     public void Receive(SplashViewFinishedMessage message)
     {
+        Logger.LogInformation("SplashViewFinishedMessage");
         ContentViewModel = ServiceProvider.GetRequiredService<MainViewModel>();
     }
 }

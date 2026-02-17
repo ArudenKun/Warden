@@ -45,7 +45,8 @@
     <PackageReference Include="StatePulse.Net" Version="2.0.1" />
     <PackageReference Include="SukiUI.Dock" Version="6.0.4-nightly20260124" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
-    <PackageReference Include="Volo.Abp.Autofac" Version="10.0.3" />
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.1.0" />
+    <PackageReference Include="Volo.Abp.BackgroundJobs.Quartz" Version="10.1.0" />
     <PackageReference Include="ZLinq.DropInGenerator" Version="1.5.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

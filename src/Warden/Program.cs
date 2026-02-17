@@ -1,5 +1,4 @@
-﻿using Autofac;
-using Avalonia;
+﻿using Avalonia;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
@@ -91,7 +90,8 @@ public static class Program
         {
             var loggerFactory = Host.Services.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger(AppHelper.Name);
-            logger.LogException(e);
+            // logger.LogException(e);
+            logger.LogError(e, "Unhandled Exception");
             throw;
         }
     }

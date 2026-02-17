@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
 using CommunityToolkit.Mvvm.DependencyInjection;
+using Warden.Messaging;
 using Warden.Utilities;
 using Warden.ViewModels;
 
@@ -30,6 +31,12 @@ public abstract class UserControl<TViewModel> : UserControl, IView<TViewModel>
     }
 
     public TViewModel ViewModel => DataContext;
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        MessengerConfigurator.RegisterRecipient(ViewModel);
+    }
 
     protected override void OnLoaded(RoutedEventArgs e)
     {
