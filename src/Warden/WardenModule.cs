@@ -67,8 +67,6 @@ public sealed partial class WardenModule : AbpModule
     )]
     private partial void ConfigureStatePulse(IServiceCollection services);
 
-    private static void ConfigureStatePulseHandler<T>(IServiceCollection services)
-    {
+    private static void ConfigureStatePulseHandler<T>(IServiceCollection services) =>
         services.AddStatePulseService<T>();
-    }
 }

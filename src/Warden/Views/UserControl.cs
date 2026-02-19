@@ -36,6 +36,7 @@ public abstract class UserControl<TViewModel> : UserControl, IView<TViewModel>
     {
         base.OnDataContextChanged(e);
         MessengerConfigurator.RegisterRecipient(ViewModel);
+        MessengerConfigurator.RegisterRequest(ViewModel);
     }
 
     protected override void OnLoaded(RoutedEventArgs e)

@@ -85,7 +85,7 @@
                     <warden:SettingsRow
                         Header="Check"
                         IconKind="CircleArrowUp">
-                        <TextBox Watermark="{Binding Test}" />
+                        <TextBox Watermark="" />
                     </warden:SettingsRow>
                 </StackPanel>
             </TabItem>

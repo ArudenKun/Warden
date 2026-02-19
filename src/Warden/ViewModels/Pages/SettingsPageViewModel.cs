@@ -21,6 +21,4 @@ public sealed class SettingsPageViewModel : PageViewModel
         new AvaloniaList<string>(
             ThemeService.ColorThemes.AsValueEnumerable().Select(x => x.DisplayName).ToList()
         );
-
-    public int Test { get; } = Random.Shared.Next(1, 1000);
 }

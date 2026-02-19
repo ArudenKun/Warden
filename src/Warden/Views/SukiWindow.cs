@@ -37,6 +37,7 @@ public abstract class SukiWindow<TViewModel> : SukiWindow, IView<TViewModel>
     {
         base.OnDataContextChanged(e);
         MessengerConfigurator.RegisterRecipient(ViewModel);
+        MessengerConfigurator.RegisterRequest(ViewModel);
     }
 
     protected override void OnLoaded(RoutedEventArgs e)

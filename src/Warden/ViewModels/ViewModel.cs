@@ -2,24 +2,52 @@
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using R3;
+using StatePulse.Net;
+using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp.Timing;
+using Warden.Messaging.Messages;
 using Warden.Services;
 using Warden.Services.Settings;
 using Warden.Settings;
 
 namespace Warden.ViewModels;
 
-public abstract partial class ViewModel : ObservableValidator, IDisposable, ITransientDependency
+public abstract partial class ViewModel
+    : ObservableValidator,
+        IDisposable,
+        ITransientDependency,
+        IHasExtraProperties
 {
+    private bool _disposed;
+
+    protected ViewModel()
+    {
+        ExtraProperties = new ExtraPropertyDictionary();
+        this.SetDefaultsForExtraProperties();
+    }
+
     public required IServiceProvider ServiceProvider { protected get; init; }
 
-    protected ILoggerFactory LoggerFactory => ServiceProvider.GetRequiredService<ILoggerFactory>();
+    public required IAbpLazyServiceProvider LazyServiceProvider { protected get; init; }
 
-    protected ILogger Logger => LoggerFactory.CreateLogger(GetType().FullName!);
+    protected IStatePulse Pulse => LazyServiceProvider.GetRequiredService<IStatePulse>();
+
+    protected IClock Clock => LazyServiceProvider.LazyGetRequiredService<IClock>();
+
+    protected ILoggerFactory LoggerFactory =>
+        LazyServiceProvider.LazyGetRequiredService<ILoggerFactory>();
+
+    protected ILogger Logger =>
+        LazyServiceProvider.LazyGetService<ILogger>(_ =>
+            LoggerFactory?.CreateLogger(GetType().FullName!) ?? NullLogger.Instance
+        );
 
     protected IMessenger Messenger => ServiceProvider.GetRequiredService<IMessenger>();
 
@@ -44,8 +72,10 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
     public IClipboard Clipboard => ServiceProvider.GetRequiredService<IClipboard>();
     public ILauncher Launcher => ServiceProvider.GetRequiredService<ILauncher>();
 
+    public ExtraPropertyDictionary ExtraProperties { get; protected set; }
+
     [ObservableProperty]
-    public virtual partial bool IsBusy { get; set; }
+    public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
     public partial string IsBusyText { get; set; } = string.Empty;
@@ -56,7 +86,11 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
 
     protected void OnAllPropertiesChanged() => OnPropertyChanged(string.Empty);
 
-    public async Task SetBusyAsync(Func<Task> func, string busyText = "", bool showException = true)
+    protected async Task SetBusyAsync(
+        Func<Task> func,
+        string busyText = "",
+        bool showException = true
+    )
     {
         IsBusy = true;
         IsBusyText = busyText;
@@ -75,7 +109,7 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
         }
     }
 
-    public bool LogException(Exception? ex, bool shouldCatch = false, bool shouldDisplay = false)
+    protected bool LogException(Exception? ex, bool shouldCatch = false, bool shouldDisplay = false)
     {
         if (ex is null)
         {
@@ -91,22 +125,17 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
         return shouldCatch;
     }
 
+    protected virtual bool CanExecuteShowPage() => true;
+
+    [RelayCommand(CanExecute = nameof(CanExecuteShowPage))]
+    protected virtual Task ShowPageAsync(Type pageType)
+    {
+        Messenger.Send(new ShowPageMessage(pageType));
+        return Task.CompletedTask;
+    }
+
     #region Disposal
 
-    // ReSharper disable once CollectionNeverQueried.Local
-    private readonly CompositeDisposable _disposables = new();
-    private bool _disposed;
-
-    public void AddTo(IDisposable disposable)
-    {
-        if (_disposed)
-        {
-            disposable.Dispose();
-            return;
-        }
-
-        _disposables.Add(disposable);
-    }
 
     ~ViewModel() => Dispose(false);
 
@@ -124,7 +153,8 @@ public abstract partial class ViewModel : ObservableValidator, IDisposable, ITra
 
         if (disposing)
         {
-            _disposables.Dispose();
+            var disposables = this.GetProperty("Disposables") as CompositeDisposable;
+            disposables?.Dispose();
         }
 
         _disposed = true;
