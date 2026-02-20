@@ -27,12 +27,15 @@ public static class Program
     private static IHost Host { get; } =
         new HostBuilder()
             .ConfigureDefaults(null)
-            .ConfigureAbpApplication<WardenModule>(options =>
-            {
-                var pluginDir = AppHelper.DataDir.CombinePath("Plugins");
-                DirectoryHelper.CreateIfNotExists(pluginDir);
-                options.PlugInSources.AddFolder(pluginDir);
-            })
+            .ConfigureAbpApplication<WardenModule>(
+                (ctx, options) =>
+                {
+                    options.Services.AddObjectAccessor(ctx.HostingEnvironment);
+                    var pluginDir = AppHelper.DataDir.CombinePath("Plugins");
+                    DirectoryHelper.CreateIfNotExists(pluginDir);
+                    options.PlugInSources.AddFolder(pluginDir);
+                }
+            )
             .ConfigureAvaloniaHosting<App>(appBuilder =>
                 appBuilder
                     .UseR3(ex => LogHelper.Error(ex, "Unhandled R3 Exception"))
@@ -123,7 +126,7 @@ public static class Program
 
     private static IHostBuilder ConfigureAbpApplication<TStartupModule>(
         this IHostBuilder builder,
-        Action<AbpApplicationCreationOptions>? configure = null
+        Action<HostBuilderContext, AbpApplicationCreationOptions>? configure = null
     )
         where TStartupModule : IAbpModule =>
         builder.ConfigureServices(
@@ -131,7 +134,7 @@ public static class Program
                 services.AddApplication<TStartupModule>(options =>
                 {
                     options.Services.ReplaceConfiguration(ctx.Configuration);
-                    configure?.Invoke(options);
+                    configure?.Invoke(ctx, options);
                     if (options.Environment.IsNullOrWhiteSpace())
                     {
                         options.Environment = ctx.HostingEnvironment.EnvironmentName;

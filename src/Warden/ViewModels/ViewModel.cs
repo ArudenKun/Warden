@@ -4,11 +4,10 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using R3;
-using StatePulse.Net;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Timing;
@@ -19,6 +18,7 @@ using Warden.Settings;
 
 namespace Warden.ViewModels;
 
+[PublicAPI]
 public abstract partial class ViewModel
     : ObservableValidator,
         IDisposable,
@@ -37,8 +37,6 @@ public abstract partial class ViewModel
 
     public required IAbpLazyServiceProvider LazyServiceProvider { protected get; init; }
 
-    protected IStatePulse Pulse => LazyServiceProvider.GetRequiredService<IStatePulse>();
-
     protected IClock Clock => LazyServiceProvider.LazyGetRequiredService<IClock>();
 
     protected ILoggerFactory LoggerFactory =>
@@ -46,7 +44,7 @@ public abstract partial class ViewModel
 
     protected ILogger Logger =>
         LazyServiceProvider.LazyGetService<ILogger>(_ =>
-            LoggerFactory?.CreateLogger(GetType().FullName!) ?? NullLogger.Instance
+            LoggerFactory.CreateLogger(GetType().FullName!)
         );
 
     protected IMessenger Messenger => ServiceProvider.GetRequiredService<IMessenger>();
@@ -135,7 +133,6 @@ public abstract partial class ViewModel
     }
 
     #region Disposal
-
 
     ~ViewModel() => Dispose(false);
 

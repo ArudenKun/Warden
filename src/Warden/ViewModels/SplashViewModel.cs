@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.DependencyInjection;
 using Warden.Messaging.Messages;
 
-namespace Warden.ViewModels.Components;
+namespace Warden.ViewModels;
 
 [Dependency(ServiceLifetime.Singleton)]
 public sealed partial class SplashViewModel : ViewModel

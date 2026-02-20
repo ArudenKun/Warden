@@ -1,6 +1,6 @@
-﻿using Warden.ViewModels.Components;
+﻿using Warden.ViewModels;
 
-namespace Warden.Views.Components;
+namespace Warden.Views;
 
 public partial class SplashView : UserControl<SplashViewModel>
 {

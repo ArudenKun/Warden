@@ -99,10 +99,11 @@ public sealed class App : Application, IDisposable
 
     private void HandleUnhandledException(Exception exception, string category)
     {
+        var toastService = _serviceProvider.GetRequiredService<IToastService>();
         var logger = _loggerFactory.CreateLogger(category);
         logger.LogError(exception, "Unhandled Exception");
-        // DispatchHelper.Invoke(() =>
-        //     _toastService.ShowExceptionToast(exception, $"{category} Exception")
-        // );
+        DispatchHelper.Invoke(() =>
+            toastService.ShowExceptionToast(exception, $"{category} Exception")
+        );
     }
 }

@@ -2,7 +2,7 @@
   <Import Project="..\Warden.SourceGenerators\Warden.SourceGenerators.props" />
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Localization\Warden\**\*.json" />
     <AdditionalFiles Include="Assets\**\*.*" AvaloniaResourcesGenerator_Resource="true" />
   </ItemGroup>
 
@@ -20,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antelcat.I18N.Avalonia" Version="1.1.2" />
     <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
@@ -30,9 +30,20 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="HotAvalonia" Version="3.1.0" PrivateAssets="All" Publish="True" />
+    <PackageReference
+      Include="HotAvalonia"
+      Version="3.1.0"
+      PrivateAssets="All"
+      Publish="True"
+      Condition="'$(IsDebug)' == 'true'"
+    />
     <PackageReference Include="Lucide.Avalonia" Version="0.1.59" />
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.3" PrivateAssets="All" />
+    <PackageReference
+      Include="MonoMod.RuntimeDetour"
+      Version="25.3.3"
+      PrivateAssets="All"
+      Condition="'$(IsDebug)' == 'true'"
+    />
     <PackageReference Include="R3Extensions.Avalonia" Version="1.3.0" />
     <PackageReference Include="R3Extensions.ObservableEvents.SourceGenerator" Version="1.3.3" />
     <PackageReference Include="Serilog.Enrichers.Demystifier" Version="1.0.3" />
@@ -44,11 +55,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="StatePulse.Net" Version="2.0.1" />
     <PackageReference Include="SukiUI.Dock" Version="6.0.4-nightly20260124" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="Volo.Abp.Autofac" Version="10.1.0" />
     <PackageReference Include="Volo.Abp.BackgroundJobs.Quartz" Version="10.1.0" />
+    <PackageReference Include="Volo.Abp.Guids" Version="10.1.0" />
     <PackageReference Include="ZLinq.DropInGenerator" Version="1.5.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -56,17 +67,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Translations\Locale.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Locale.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Translations\Locale.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Locale.resx</DependentUpon>
+    <Compile Update="Views\SplashView.axaml.cs">
+      <DependentUpon>SplashView.axaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
 
@@ -78,5 +81,10 @@
       ReferenceOutputAssembly="false"
       OutputItemType="analyzer"
     />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ViewModels\Components\" />
+    <Folder Include="Views\Components\" />
   </ItemGroup>
 </Project>

@@ -2,7 +2,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
-using Volo.Abp.DependencyInjection;
 using Warden.Messaging.Messages;
 using Warden.ViewModels.Pages;
 using ZLinq;
@@ -20,10 +19,9 @@ public sealed partial class MainViewModel : ViewModel, IRecipient<ShowPageMessag
         var orderedPages = pageViewModels
             .AsValueEnumerable()
             .OrderBy(x => x.Index)
-            .Cast<PageViewModel>()
-            .ToArray();
+            .Cast<PageViewModel>();
 
-        Pages.AddRange(orderedPages);
+        Pages.AddRange([.. orderedPages]);
 
         // 2. Cache the index of each type for O(1) lookups during navigation
         _pageIndexMap = orderedPages
