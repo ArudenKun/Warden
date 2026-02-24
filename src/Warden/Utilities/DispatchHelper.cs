@@ -13,7 +13,6 @@ public static class DispatchHelper
             callback();
             return;
         }
-
         Dispatcher.UIThread.Invoke(callback, priority ?? DispatcherPriority.Send);
     }
 

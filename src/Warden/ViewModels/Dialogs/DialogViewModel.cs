@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using JetBrains.Annotations;
 using SukiUI.Controls;
 using SukiUI.Dialogs;
 
@@ -6,6 +7,7 @@ namespace Warden.ViewModels.Dialogs;
 
 public abstract class DialogViewModel : DialogViewModel<bool>;
 
+[PublicAPI]
 public abstract partial class DialogViewModel<TResult> : ViewModel
 {
     private bool _isResultSet;
@@ -18,6 +20,8 @@ public abstract partial class DialogViewModel<TResult> : ViewModel
     public TaskCompletionSource<bool> Completion { get; private set; } = new();
 
     protected ISukiDialog Dialog { get; private set; }
+
+    protected ISukiDialogManager? Manager => Dialog.Manager;
 
     public TResult? DialogResult { get; private set; }
 

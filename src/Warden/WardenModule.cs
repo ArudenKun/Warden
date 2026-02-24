@@ -60,7 +60,7 @@ public sealed class WardenModule : AbpModule
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
         var loggerFactory = context.ServiceProvider.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger(AppHelper.Name);
+        var logger = loggerFactory.CreateLogger(AppConsts.Name);
         logger.LogInformation("Shutting Down");
         LogHelper.Cleanup();
     }

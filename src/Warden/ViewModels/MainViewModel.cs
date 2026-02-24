@@ -38,7 +38,7 @@ public sealed partial class MainViewModel : ViewModel, IRecipient<ShowPageMessag
 
     public void Receive(ShowPageMessage message)
     {
-        ChangePage(message.ViewModelType);
+        ChangePage(message);
     }
 
     private void ChangePage(Type viewModelType)

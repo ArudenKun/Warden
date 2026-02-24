@@ -45,18 +45,18 @@ public sealed class App : Application, IDisposable
             AppDomain
                 .CurrentDomain.Events()
                 .UnhandledException.Subscribe(e =>
-                    HandleUnhandledException((Exception)e.ExceptionObject, AppHelper.Name)
+                    HandleUnhandledException((Exception)e.ExceptionObject, AppConsts.Name)
                 ),
             RxEvents.TaskSchedulerUnobservedTaskException.Subscribe(e =>
             {
-                HandleUnhandledException(e.Exception, $"{AppHelper.Name} Task");
+                HandleUnhandledException(e.Exception, "Task");
                 e.SetObserved();
             }),
             Dispatcher
                 .UIThread.Events()
                 .UnhandledException.Subscribe(e =>
                 {
-                    HandleUnhandledException(e.Exception, $"{AppHelper.Name} UI");
+                    HandleUnhandledException(e.Exception, "UI");
                     e.Handled = true;
                 })
         );
@@ -92,10 +92,7 @@ public sealed class App : Application, IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _subscriptions?.Dispose();
-    }
+    public void Dispose() => _subscriptions?.Dispose();
 
     private void HandleUnhandledException(Exception exception, string category)
     {

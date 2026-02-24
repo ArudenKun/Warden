@@ -92,7 +92,7 @@ public static class Program
         catch (Exception e)
         {
             var loggerFactory = Host.Services.GetRequiredService<ILoggerFactory>();
-            var logger = loggerFactory.CreateLogger(AppHelper.Name);
+            var logger = loggerFactory.CreateLogger(AppConsts.Name);
             // logger.LogException(e);
             logger.LogError(e, "Unhandled Exception");
             throw;

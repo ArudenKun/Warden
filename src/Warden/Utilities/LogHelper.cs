@@ -3,7 +3,6 @@ using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using Warden.Settings;
-using Warden.Utilities.Extensions;
 
 namespace Warden.Utilities;
 

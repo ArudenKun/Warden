@@ -37,7 +37,7 @@
       Publish="True"
       Condition="'$(IsDebug)' == 'true'"
     />
-    <PackageReference Include="Lucide.Avalonia" Version="0.1.59" />
+    <PackageReference Include="Lucide.Avalonia" Version="0.1.60" />
     <PackageReference
       Include="MonoMod.RuntimeDetour"
       Version="25.3.3"
@@ -64,13 +64,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Views\SplashView.axaml.cs">
-      <DependentUpon>SplashView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
