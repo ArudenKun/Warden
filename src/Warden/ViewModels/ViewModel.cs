@@ -58,7 +58,7 @@ public abstract partial class ViewModel
 
     protected IThemeService ThemeService => ServiceProvider.GetRequiredService<IThemeService>();
 
-    public GeneralSetting GeneralOptions => SettingsService.Get<GeneralSetting>();
+    public GeneralSetting GeneralSetting => SettingsService.Get<GeneralSetting>();
 
     public AppearanceSetting AppearanceSetting => SettingsService.Get<AppearanceSetting>();
 
@@ -124,6 +124,9 @@ public abstract partial class ViewModel
     }
 
     protected virtual bool CanExecuteShowPage() => true;
+
+    protected virtual Task ShowPageAsync<TViewModel>()
+        where TViewModel : ViewModel => ShowPageAsync(typeof(TViewModel));
 
     [RelayCommand(CanExecute = nameof(CanExecuteShowPage))]
     protected virtual Task ShowPageAsync(Type pageType)

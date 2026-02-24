@@ -1,10 +1,10 @@
-﻿using Warden.ViewModels.Pages;
+﻿using Warden.ViewModels;
 
-namespace Warden.Views.Pages;
+namespace Warden.Views;
 
-public partial class SettingsPageView : UserControl<SettingsPageViewModel>
+public partial class SettingsView : UserControl<SettingsViewModel>
 {
-    public SettingsPageView()
+    public SettingsView()
     {
         InitializeComponent();
     }

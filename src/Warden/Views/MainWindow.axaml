@@ -27,7 +27,7 @@
         <Button
             Classes="WindowControlsButton"
             Command="{Binding ShowPageCommand}"
-            CommandParameter="{x:Type warden:SettingsPageViewModel}"
+            CommandParameter="{x:Type warden:SettingsViewModel}"
             Content="{LucideIconContent Settings}"
             IsVisible="{Binding !IsSplashView}" />
     </suki:SukiWindow.RightWindowTitleBarControls>

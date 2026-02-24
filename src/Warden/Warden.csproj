@@ -77,7 +77,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ViewModels\Components\" />
-    <Folder Include="Views\Components\" />
+    <Compile Update="Views\SettingsView.axaml.cs">
+      <DependentUpon>SettingsView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\SettingsRow.axaml.cs">
+      <DependentUpon>SettingsRow.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

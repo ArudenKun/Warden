@@ -9,8 +9,13 @@ using Warden.Messaging.Messages;
 namespace Warden.ViewModels;
 
 [Dependency(ServiceLifetime.Singleton)]
-public sealed partial class MainWindowViewModel : ViewModel, IRecipient<SplashViewFinishedMessage>
+public sealed partial class MainWindowViewModel
+    : ViewModel,
+        IRecipient<ShowPageMessage>,
+        IRecipient<SplashFinishedMessage>
 {
+    private bool _isInitialized;
+
     public required ISukiToastManager SukiToastManager { get; init; }
     public required ISukiDialogManager SukiDialogManager { get; init; }
 
@@ -25,11 +30,20 @@ public sealed partial class MainWindowViewModel : ViewModel, IRecipient<SplashVi
 
     public override void OnLoaded()
     {
-        ContentViewModel = ServiceProvider.GetRequiredService<SplashViewModel>();
+        if (!_isInitialized)
+        {
+            ContentViewModel = ServiceProvider.GetRequiredService<SplashViewModel>();
+        }
+
+        _isInitialized = true;
     }
 
-    public void Receive(SplashViewFinishedMessage message)
+    public void Receive(ShowPageMessage message) => ChangePage(message);
+
+    public void Receive(SplashFinishedMessage message) => ChangePage(message.ViewModelType);
+
+    private void ChangePage(Type viewModelType)
     {
-        ContentViewModel = ServiceProvider.GetRequiredService<MainViewModel>();
+        ContentViewModel = (ViewModel)ServiceProvider.GetRequiredService(viewModelType);
     }
 }

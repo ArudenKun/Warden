@@ -21,14 +21,17 @@ public sealed partial class SplashViewModel : ViewModel
 
     private async Task StartAsync()
     {
-        await Task.Delay(1.Seconds());
-        StatusText = "Loading Settings";
-        await Task.Delay(200.Milliseconds());
-        Messenger.Send(new SplashViewFinishedMessage());
-
-        if (GeneralOptions.ShowConsole)
+        if (GeneralSetting.ShowConsole)
         {
             // Messenger.Send(new ConsoleWindowShowMessage());
         }
+
+        await Task.Delay(1.Seconds());
+        StatusText = "Loading Settings";
+        await Task.Delay(200.Milliseconds());
+        var message = GeneralSetting.IsSetup
+            ? new SplashFinishedMessage(typeof(SetupViewModel))
+            : new SplashFinishedMessage(typeof(MainViewModel));
+        Messenger.Send(message);
     }
 }

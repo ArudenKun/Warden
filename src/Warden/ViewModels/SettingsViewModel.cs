@@ -1,21 +1,14 @@
 ﻿using Avalonia.Collections;
-using Lucide.Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.DependencyInjection;
 using ZLinq;
 
-namespace Warden.ViewModels.Pages;
+namespace Warden.ViewModels;
 
 [Dependency(ServiceLifetime.Singleton)]
-public sealed class SettingsPageViewModel : PageViewModel
+public sealed class SettingsViewModel : ViewModel
 {
-    public SettingsPageViewModel()
-    {
-        IsVisibleOnSideMenu = false;
-    }
-
-    public override int Index => int.MaxValue;
-    public override LucideIconKind IconKind => LucideIconKind.Settings;
+    public string DisplayName => "Settings";
 
     public IAvaloniaReadOnlyList<string> ColorThemes =>
         new AvaloniaList<string>(
