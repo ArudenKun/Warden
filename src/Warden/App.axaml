@@ -3,13 +3,8 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
-    xmlns:warden="https://github.com/arudenkun/Warden"
     RequestedThemeVariant="Default">
     <!--  "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options.  -->
-
-    <Application.DataTemplates>
-        <warden:ViewLocator />
-    </Application.DataTemplates>
 
     <Application.Styles>
         <suki:SukiTheme ThemeColor="Blue" />

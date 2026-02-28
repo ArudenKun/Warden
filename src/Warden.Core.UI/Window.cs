@@ -1,17 +1,14 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
 using CommunityToolkit.Mvvm.DependencyInjection;
-using SukiUI.Controls;
-using Warden.Messaging;
-using Warden.Utilities;
-using Warden.ViewModels;
+using Volo.Abp.DependencyInjection;
 
-namespace Warden.Views;
+namespace Warden.Core;
 
-public abstract class SukiWindow<TViewModel> : SukiWindow, IView<TViewModel>
-    where TViewModel : ViewModel
+public abstract class Window<TViewModel> : Window, IView<TViewModel>, ITransientDependency
+    where TViewModel : ViewModelBase
 {
-    protected SukiWindow()
+    protected Window()
     {
 #if DEBUG
         if (Design.IsDesignMode)
@@ -32,13 +29,6 @@ public abstract class SukiWindow<TViewModel> : SukiWindow, IView<TViewModel>
     }
 
     public TViewModel ViewModel => DataContext;
-
-    protected override void OnDataContextChanged(EventArgs e)
-    {
-        base.OnDataContextChanged(e);
-        MessengerConfigurator.RegisterRecipient(ViewModel);
-        MessengerConfigurator.RegisterRequest(ViewModel);
-    }
 
     protected override void OnLoaded(RoutedEventArgs e)
     {

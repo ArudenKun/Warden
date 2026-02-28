@@ -1,23 +1,20 @@
+using System.Collections.Concurrent;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace Warden.Core;
 
 public class ViewLocator : IDataTemplate, ISingletonDependency
 {
-    private const string Key = "ViewLocator";
-
     private static readonly Type ViewInterfaceType = typeof(IView<>);
+    private static readonly ConcurrentDictionary<Type, Type> Cache = new();
 
     private readonly IServiceProvider _serviceProvider;
-    private readonly IDistributedCache<Type> _cache;
 
-    public ViewLocator(IServiceProvider serviceProvider, IDistributedCache<Type> cache)
+    public ViewLocator(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        _cache = cache;
     }
 
     public TView CreateView<TView, TViewModel>(TViewModel viewModel)
@@ -30,12 +27,9 @@ public class ViewLocator : IDataTemplate, ISingletonDependency
     public Control CreateView(ViewModelBase viewModel)
     {
         var viewModelType = viewModel.GetType();
-        var viewType = _cache.GetOrAdd(
-            GetKey(viewModelType),
-            () => ViewInterfaceType.MakeGenericType(viewModelType)
-        );
+        var viewType = Cache.GetOrAdd(viewModelType, k => ViewInterfaceType.MakeGenericType(k));
 
-        if (viewType is null || _serviceProvider.GetService(viewType) is not Control view)
+        if (_serviceProvider.GetService(viewType) is not Control view)
             return CreateText($"Could not find view for {viewModelType.FullName}");
 
         view.DataContext = viewModel;
@@ -55,6 +49,4 @@ public class ViewLocator : IDataTemplate, ISingletonDependency
     bool IDataTemplate.Match(object? data) => data is ViewModelBase;
 
     private static TextBlock CreateText(string text) => new() { Text = text };
-
-    private static string GetKey(Type viewModelType) => $"{viewModelType.FullName}:{Key}";
 }

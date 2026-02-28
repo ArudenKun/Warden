@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.DependencyInjection;
+using Warden.Core;
 using Warden.Messaging.Messages;
 
 namespace Warden.ViewModels;

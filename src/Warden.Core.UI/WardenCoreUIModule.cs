@@ -1,6 +1,8 @@
 ﻿using Autofac;
 using Autofac.Core.Resolving.Pipeline;
+using Avalonia;
 using CommunityToolkit.Mvvm.DependencyInjection;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using R3;
 using R3.ObservableEvents;
@@ -11,6 +13,7 @@ using Warden.Dependency;
 namespace Warden.Core;
 
 // ReSharper disable once InconsistentNaming
+[DependsOn(typeof(WardenCoreModule))]
 public sealed class WardenCoreUIModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
@@ -24,6 +27,8 @@ public sealed class WardenCoreUIModule : AbpModule
         var containerBuilder = context.Services.GetObjectOrNull<ContainerBuilder>();
         if (containerBuilder is not null)
             ConfigureInitializer(context.Services.GetContainerBuilder());
+
+        context.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -43,12 +48,26 @@ public sealed class WardenCoreUIModule : AbpModule
                         (context, next) =>
                         {
                             next(context);
+
+                            var instance = context.Instance;
+
+                            if (instance is ViewModelBase viewModelBase)
+                                context.Resolve<IMessenger>().RegisterAll(viewModelBase);
+
                             if (!context.NewInstanceActivated)
                                 return;
 
-                            var instance = context.Instance!;
-                            if (instance is IInitializer initializer)
-                                initializer.Initialize();
+                            switch (instance)
+                            {
+                                case IInitializer initializer:
+                                    initializer.Initialize();
+                                    break;
+                                case Application application:
+                                    application.DataTemplates.AddIfNotContains(
+                                        context.Resolve<ViewLocator>()
+                                    );
+                                    break;
+                            }
                         }
                     )
             );

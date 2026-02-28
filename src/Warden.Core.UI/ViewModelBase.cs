@@ -53,7 +53,7 @@ public abstract partial class ViewModelBase
 
     public virtual void OnUnloaded() { }
 
-    protected void OnAllPropertiesChanged() => OnPropertyChanged(string.Empty);
+    protected virtual void OnAllPropertiesChanged() => OnPropertyChanged(string.Empty);
 
     protected virtual async Task SetBusyAsync(
         Func<Task> func,

@@ -9,12 +9,14 @@ using Microsoft.Extensions.Logging;
 using R3;
 using R3.ObservableEvents;
 using Volo.Abp.DependencyInjection;
+using Warden.Core;
 using Warden.Services;
 using Warden.Services.Settings;
 using Warden.Settings;
 using Warden.Utilities;
 using Warden.ViewModels;
 using ZLinq;
+using DispatchHelper = Warden.Utilities.DispatchHelper;
 
 namespace Warden;
 
@@ -34,6 +36,8 @@ public sealed class App : Application, IDisposable, ISingletonDependency
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        // DataTemplates.AddIfNotContains(_serviceProvider.GetRequiredService<ViewLocator>());
 
         var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
         var themeService = _serviceProvider.GetRequiredService<IThemeService>();

@@ -1,5 +1,4 @@
 ﻿using Avalonia;
-using CommunityToolkit.Mvvm.DependencyInjection;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -62,9 +61,7 @@ public static class Program
         {
             VelopackApp.Build().SetLogger(new VelopackLogger()).Run();
             abpApplication.Initialize();
-#if DEBUG
-            Ioc.Default.ConfigureServices(abpApplication.ServiceProvider);
-#endif
+
             BuildAvaloniaApp(abpApplication.ServiceProvider).StartWithClassicDesktopLifetime(args);
         }
         catch (Exception e)

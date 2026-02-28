@@ -22,7 +22,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="/Controls/NumericTextBox.axaml" />
-                <ResourceInclude Source="/Controls/SwitchPresenter.axaml" />
+                <!-- <ResourceInclude Source="/Controls/SwitchPresenter.axaml" /> -->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Styles.Resources>

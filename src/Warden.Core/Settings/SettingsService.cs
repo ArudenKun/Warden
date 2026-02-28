@@ -9,7 +9,7 @@ using Volo.Abp.DependencyInjection;
 namespace Warden.Core.Settings;
 
 [AutoExtractInterface(Interfaces = [typeof(IDisposable)])]
-public class SettingsService : ISettingsService, ISingletonDependency
+public class SettingsService : ISettingsService
 {
     private readonly ConcurrentDictionary<Type, Lazy<object>> _settings = new();
     private readonly ConcurrentDictionary<Type, JsonTypeInfo> _settingsJsonTypeInfo = new();

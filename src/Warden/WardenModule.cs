@@ -1,11 +1,6 @@
-﻿using Autofac;
-using Autofac.Core.Resolving.Pipeline;
-using Avalonia.Controls;
-using CommunityToolkit.Mvvm.Messaging;
+﻿using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using R3;
-using R3.ObservableEvents;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp;
@@ -19,11 +14,11 @@ using Volo.Abp.Modularity;
 using Volo.Abp.Quartz;
 using Volo.Abp.Timing;
 using Volo.Abp.VirtualFileSystem;
+using Warden.Core;
+using Warden.Core.Settings;
 using Warden.Data;
-using Warden.Dependency;
 using Warden.Localization;
 using Warden.Utilities;
-using Warden.ViewModels;
 
 namespace Warden;
 
@@ -31,13 +26,14 @@ namespace Warden;
     typeof(AbpAutofacModule),
     typeof(AbpBackgroundWorkersQuartzModule),
     typeof(AbpBackgroundJobsQuartzModule),
-    typeof(AbpGuidsModule)
+    typeof(AbpGuidsModule),
+    typeof(WardenCoreModule),
+    typeof(WardenCoreUIModule)
 )]
 public sealed class WardenModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddConventionalRegistrar(new ViewModelConventionalRegistrar());
         context.Services.AddObjectAccessor<TopLevel>();
 
         PreConfigure<AbpQuartzOptions>(options =>
@@ -74,7 +70,6 @@ public sealed class WardenModule : AbpModule
         );
 
         ConfigureVirtualFileSystem(context.Services.GetAbpHostEnvironment());
-        ConfigureInitializer(context.Services.GetContainerBuilder());
 
         context.Services.AddSingleton(sp =>
             sp.GetRequiredService<IObjectAccessor<TopLevel>>().Value
@@ -85,7 +80,8 @@ public sealed class WardenModule : AbpModule
         context.Services.AddTransient(sp => sp.GetRequiredService<TopLevel>().Launcher);
         context.Services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
         context.Services.AddSingleton<ISukiToastManager, SukiToastManager>();
-        context.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
+
+        context.Services.AddSettingsService(AppHelper.SettingsPath);
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
@@ -114,23 +110,4 @@ public sealed class WardenModule : AbpModule
             }
         });
     }
-
-    private static void ConfigureInitializer(ContainerBuilder containerBuilder) =>
-        containerBuilder
-            .ComponentRegistryBuilder.Events()
-            .Registered.Subscribe(args =>
-                args.ComponentRegistration.PipelineBuilding += (_, builder) =>
-                    builder.Use(
-                        PipelinePhase.Activation,
-                        (context, next) =>
-                        {
-                            next(context);
-                            if (!context.NewInstanceActivated)
-                                return;
-
-                            if (context.Instance is IInitializer initializer)
-                                initializer.Initialize();
-                        }
-                    )
-            );
 }
