@@ -7,7 +7,6 @@
   <Folder Name="/src/">
     <Project Path="src/Warden.Core.UI/Warden.Core.UI.csproj" />
     <Project Path="src/Warden.Core/Warden.Core.csproj" />
-    <Project Path="src/Warden.Database/Warden.Database.csproj" />
     <Project Path="src/Warden.SourceGenerators/Warden.SourceGenerators.csproj" />
     <Project Path="src/Warden/Warden.csproj" />
   </Folder>
