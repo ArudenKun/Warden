@@ -17,6 +17,11 @@ public static class AppHelper
 
     public static string AppDir => AppDomain.CurrentDomain.BaseDirectory;
 
+    public static string ContentRootDir =>
+        AppContext.BaseDirectory[
+            ..AppContext.BaseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase)
+        ];
+
     public static string RoamingDir =>
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
@@ -43,4 +48,7 @@ public static class AppHelper
     public static string LogsDir => DataDir.CombinePath("Logs");
     public static string SettingsPath => DataDir.CombinePath(AppConsts.SettingsFileName);
     public static string ToolsDir => DataDir.CombinePath("Tools");
+
+    public static string BackgroundJobsWorkersConnectionString =>
+        DataDir.CombinePath("background_jobs_workers.db");
 }

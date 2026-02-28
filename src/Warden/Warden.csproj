@@ -17,11 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\logo.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
+    <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.6.0" />
+    <PackageReference Include="Autofac" Version="9.0.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
@@ -38,16 +36,21 @@
       Condition="'$(IsDebug)' == 'true'"
     />
     <PackageReference Include="Lucide.Avalonia" Version="0.1.60" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference
       Include="MonoMod.RuntimeDetour"
       Version="25.3.3"
       PrivateAssets="All"
       Condition="'$(IsDebug)' == 'true'"
     />
+    <PackageReference Include="Quartz.Serialization.SystemTextJson" Version="3.15.1" />
     <PackageReference Include="R3Extensions.Avalonia" Version="1.3.0" />
     <PackageReference Include="R3Extensions.ObservableEvents.SourceGenerator" Version="1.3.3" />
     <PackageReference Include="Serilog.Enrichers.Demystifier" Version="1.0.3" />
-    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -55,10 +58,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SukiUI.Dock" Version="6.0.4-nightly20260124" />
+    <PackageReference Include="SukiUI.Dock" Version="6.0.4-nightly20260225" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="Volo.Abp.Autofac" Version="10.1.0" />
     <PackageReference Include="Volo.Abp.BackgroundJobs.Quartz" Version="10.1.0" />
+    <PackageReference Include="Volo.Abp.BackgroundWorkers.Quartz" Version="10.1.0" />
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.1.0" />
     <PackageReference Include="Volo.Abp.Guids" Version="10.1.0" />
     <PackageReference Include="ZLinq.DropInGenerator" Version="1.5.5">
       <PrivateAssets>all</PrivateAssets>
@@ -68,7 +73,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Warden.Core\Warden.Core.csproj" />
-    <ProjectReference Include="..\Warden.Hosting\Warden.Hosting.csproj" />
     <ProjectReference
       Include="..\Warden.SourceGenerators\Warden.SourceGenerators.csproj"
       ReferenceOutputAssembly="false"
@@ -85,5 +89,9 @@
       <DependentUpon>SettingsRow.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entities\" />
   </ItemGroup>
 </Project>

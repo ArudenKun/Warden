@@ -19,6 +19,7 @@ public sealed partial class MainWindowViewModel
     public required ISukiToastManager SukiToastManager { get; init; }
     public required ISukiDialogManager SukiDialogManager { get; init; }
 
+    [DisablePropertyInjection]
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSplashView))]
     [NotifyCanExecuteChangedFor(nameof(ShowPageCommand))]
@@ -42,8 +43,6 @@ public sealed partial class MainWindowViewModel
 
     public void Receive(SplashFinishedMessage message) => ChangePage(message.ViewModelType);
 
-    private void ChangePage(Type viewModelType)
-    {
+    private void ChangePage(Type viewModelType) =>
         ContentViewModel = (ViewModel)ServiceProvider.GetRequiredService(viewModelType);
-    }
 }

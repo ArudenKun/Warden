@@ -18,7 +18,7 @@ using ZLinq;
 
 namespace Warden;
 
-public sealed class App : Application, IDisposable
+public sealed class App : Application, IDisposable, ISingletonDependency
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILoggerFactory _loggerFactory;

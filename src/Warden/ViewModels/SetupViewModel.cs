@@ -2,12 +2,14 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.DependencyInjection;
 using Warden.Messaging.Messages;
 
 namespace Warden.ViewModels;
 
 public sealed partial class SetupViewModel : ViewModel, IRecipient<NextSetupMessage>
 {
+    [DisablePropertyInjection]
     [ObservableProperty]
     public partial ViewModel ViewModel { get; set; } = null!;
 

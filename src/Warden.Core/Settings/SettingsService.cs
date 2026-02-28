@@ -1,33 +1,61 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Volo.Abp.DependencyInjection;
-using Warden.Settings;
-using Warden.Utilities;
 
-namespace Warden.Services.Settings;
+namespace Warden.Core.Settings;
 
 [AutoExtractInterface(Interfaces = [typeof(IDisposable)])]
-public partial class SettingsService : ISettingsService, ISingletonDependency
+public class SettingsService : ISettingsService, ISingletonDependency
 {
-    private readonly ILogger<SettingsService> _logger;
     private readonly ConcurrentDictionary<Type, Lazy<object>> _settings = new();
-    private readonly JsonSerializerOptions _serializerOptions;
+    private readonly ConcurrentDictionary<Type, JsonTypeInfo> _settingsJsonTypeInfo = new();
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
     private int _isDisposed;
 
     /// <summary>Initializes a new instance of the SettingsService.</summary>
-    public SettingsService(ILogger<SettingsService>? logger = null)
+    /// <summary>
+    /// Initializes an instance of <see cref="SettingsService" />.
+    /// </summary>
+    /// <remarks>
+    /// If you are relying on compile-time serialization, the <paramref name="jsonSerializerOptions" /> instance
+    /// must have a valid <see cref="JsonSerializerOptions.TypeInfoResolver"/> set.
+    /// </remarks>
+    protected SettingsService(string filePath, JsonSerializerOptions jsonSerializerOptions)
     {
-        _logger = logger ?? NullLogger<SettingsService>.Instance;
-        FileName = AppHelper.SettingsPath;
-        _serializerOptions = SettingsServiceSerializerContext.Default.Options;
+        FilePath = filePath;
+        _jsonSerializerOptions = jsonSerializerOptions;
     }
 
-    public string FileName { get; }
+    /// <summary>
+    /// Initializes an instance of <see cref="SettingsService" />.
+    /// </summary>
+    protected SettingsService(string filePath, IJsonTypeInfoResolver jsonTypeInfoResolver)
+        : this(
+            filePath,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                TypeInfoResolver = jsonTypeInfoResolver,
+            }
+        ) { }
+
+    /// <summary>
+    /// Initializes an instance of <see cref="SettingsService" />.
+    /// </summary>
+    [RequiresUnreferencedCode(
+        "This constructor initializes the settings manager with reflection-based serialization, which is incompatible with assembly trimming."
+    )]
+    [RequiresDynamicCode(
+        "This constructor initializes the settings manager with reflection-based serialization, which is incompatible with ahead-of-time compilation."
+    )]
+    protected SettingsService(string filePath)
+        : this(filePath, new DefaultJsonTypeInfoResolver()) { }
+
+    public string FilePath { get; }
 
     public event EventHandler<SettingsErrorEventArgs>? ErrorOccurred;
 
@@ -46,12 +74,12 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
             JsonObject? rootNode = null;
 
             // 1. Try to load existing file to preserve settings not currently in memory
-            if (File.Exists(FileName))
+            if (File.Exists(FilePath))
             {
                 try
                 {
                     using var stream = new FileStream(
-                        FileName,
+                        FilePath,
                         FileMode.Open,
                         FileAccess.Read,
                         FileShare.Read
@@ -63,15 +91,15 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
                 {
                     // _logger.LogError(ex, "Error reading settings file");
                     OnErrorOccurred(
-                        new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FileName)
+                        new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FilePath)
                     );
                 }
             }
             else
             {
                 Directory.CreateDirectory(
-                    Path.GetDirectoryName(FileName)
-                        ?? throw new DirectoryNotFoundException("Directory not found: " + FileName)
+                    Path.GetDirectoryName(FilePath)
+                        ?? throw new DirectoryNotFoundException("Directory not found: " + FilePath)
                 );
             }
 
@@ -86,7 +114,7 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
             catch (Exception ex)
             {
                 OnErrorOccurred(
-                    new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FileName)
+                    new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FilePath)
                 );
                 // If update failed, reset to empty to ensure we at least save the current state
                 rootNode = new JsonObject();
@@ -96,7 +124,7 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
             // 4. Write back to disk
             using (
                 var stream = new FileStream(
-                    FileName,
+                    FilePath,
                     FileMode.Create,
                     FileAccess.Write,
                     FileShare.Write
@@ -107,12 +135,12 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
                     stream,
                     new JsonWriterOptions { Indented = true }
                 );
-                rootNode.WriteTo(writer, _serializerOptions);
+                rootNode.WriteTo(writer, _jsonSerializerOptions);
             }
         }
         catch (Exception ex)
         {
-            OnErrorOccurred(new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FileName));
+            OnErrorOccurred(new SettingsErrorEventArgs(ex, SettingsServiceAction.Save, FilePath));
         }
     }
 
@@ -125,13 +153,13 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
             {
                 var typeKey = GetTypeKey(kvp.Key);
                 var settingObj = kvp.Value.Value;
+                var jsonTypeInfo = _settingsJsonTypeInfo.GetOrAdd(
+                    kvp.Key,
+                    k => _jsonSerializerOptions.GetTypeInfo(k)
+                );
 
                 // Serialize the specific setting object to a node
-                var settingNode = JsonSerializer.SerializeToNode(
-                    settingObj,
-                    kvp.Key,
-                    _serializerOptions
-                );
+                var settingNode = JsonSerializer.SerializeToNode(settingObj, jsonTypeInfo);
 
                 // Update or Add to the root object
                 root[typeKey] = settingNode;
@@ -156,7 +184,7 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
 
     private void OnErrorOccurred(SettingsErrorEventArgs e)
     {
-        _logger.LogError(e.Error, "An error occurred on [{Action}]", e.Action);
+        // _logger.LogError(e.Error, "An error occurred on [{Action}]", e.Action);
         ErrorOccurred?.Invoke(this, e);
     }
 
@@ -169,7 +197,7 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
         }
         catch (Exception ex)
         {
-            OnErrorOccurred(new SettingsErrorEventArgs(ex, SettingsServiceAction.Open, FileName));
+            OnErrorOccurred(new SettingsErrorEventArgs(ex, SettingsServiceAction.Open, FilePath));
         }
 
         return settingObject ?? Activator.CreateInstance(type)!;
@@ -177,13 +205,18 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
 
     private object? LoadCore(Type type)
     {
-        if (!File.Exists(FileName))
+        if (!File.Exists(FilePath))
             return null;
+
+        var jsonTypeInfo = _settingsJsonTypeInfo.GetOrAdd(
+            type,
+            k => _jsonSerializerOptions.GetTypeInfo(k)
+        );
 
         try
         {
             using var stream = new FileStream(
-                FileName,
+                FilePath,
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.Read
@@ -198,7 +231,7 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
                 // Find the key corresponding to this type
                 if (rootObj.TryGetPropertyValue(typeKey, out var section) && section != null)
                 {
-                    return section.Deserialize(type, _serializerOptions);
+                    return section.Deserialize(jsonTypeInfo);
                 }
             }
         }
@@ -227,10 +260,4 @@ public partial class SettingsService : ISettingsService, ISingletonDependency
         name = name == null ? type.Name : type.Name + "." + name;
         return name;
     }
-
-    [JsonSerializable(typeof(GeneralSetting))]
-    [JsonSerializable(typeof(AppearanceSetting))]
-    [JsonSerializable(typeof(LoggingSetting))]
-    [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
-    private sealed partial class SettingsServiceSerializerContext : JsonSerializerContext;
 }
