@@ -2,7 +2,7 @@
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using Warden.Settings;
+using Warden.Options;
 
 namespace Warden.Utilities;
 
@@ -25,12 +25,12 @@ public static class LogHelper
 
     private static ILogger Logger => Serilog.Log.Logger;
 
-    public static void Initialize(LoggingSetting loggingSetting)
+    public static void Initialize(LoggingOptions loggingOptions)
     {
         if (_isInitialized)
             return;
 
-        _subscription = loggingSetting
+        _subscription = loggingOptions
             .ObservePropertyChanged(x => x.LogEventLevel)
             .Subscribe(x => LoggingLevelSwitch?.MinimumLevel = x);
 

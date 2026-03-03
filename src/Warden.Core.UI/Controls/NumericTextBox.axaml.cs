@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 using KeyEventArgs = Avalonia.Input.KeyEventArgs;
 using TextBox = Avalonia.Controls.TextBox;
 
-namespace Warden.Controls;
+namespace Warden.Core.Controls;
 
 /// <summary>
 /// Represents a control that can permit only numbers

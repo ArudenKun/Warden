@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Warden.Settings;
+namespace Warden.Options;
 
-public sealed partial class GeneralSetting : ObservableObject
+public sealed partial class GeneralOptions : ObservableObject
 {
     [ObservableProperty]
     public partial bool AutoUpdate { get; set; } = false;

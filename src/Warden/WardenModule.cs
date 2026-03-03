@@ -4,11 +4,9 @@ using Microsoft.Extensions.Logging;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp;
-using Volo.Abp.Autofac;
 using Volo.Abp.BackgroundJobs.Quartz;
 using Volo.Abp.BackgroundWorkers.Quartz;
 using Volo.Abp.DependencyInjection;
-using Volo.Abp.Guids;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Quartz;
@@ -23,10 +21,8 @@ using Warden.Utilities;
 namespace Warden;
 
 [DependsOn(
-    typeof(AbpAutofacModule),
     typeof(AbpBackgroundWorkersQuartzModule),
     typeof(AbpBackgroundJobsQuartzModule),
-    typeof(AbpGuidsModule),
     typeof(WardenCoreModule),
     typeof(WardenCoreUIModule)
 )]
@@ -37,18 +33,13 @@ public sealed class WardenModule : AbpModule
         context.Services.AddObjectAccessor<TopLevel>();
 
         PreConfigure<AbpQuartzOptions>(options =>
-            options.Configurator = builder =>
-            {
-                builder.UseSimpleTypeLoader();
-                // builder.UsePersistentStore(storeOptions =>
-                // {
-                //     storeOptions.UseSystemTextJsonSerializer();
-                //     storeOptions.UseMicrosoftSQLite(
-                //         AppHelper.BackgroundJobsWorkersConnectionString
-                //     );
-                // });
-            }
+            options.Configurator = builder => builder.UseSimpleTypeLoader()
         );
+
+        PreConfigure<SettingsServiceOptions>(options =>
+        {
+            options.FilePath = AppHelper.SettingsPath;
+        });
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
@@ -80,8 +71,6 @@ public sealed class WardenModule : AbpModule
         context.Services.AddTransient(sp => sp.GetRequiredService<TopLevel>().Launcher);
         context.Services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
         context.Services.AddSingleton<ISukiToastManager, SukiToastManager>();
-
-        context.Services.AddSettingsService(AppHelper.SettingsPath);
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)

@@ -2,35 +2,37 @@
 using Avalonia.Collections;
 using Avalonia.Media;
 using Avalonia.Styling;
+using JetBrains.Annotations;
 using R3;
 using SukiUI;
 using SukiUI.Enums;
 using SukiUI.Models;
 using Volo.Abp.DependencyInjection;
+using Warden.Core.Settings;
 using Warden.Models;
-using Warden.Services.Settings;
-using Warden.Settings;
+using Warden.Options;
 using ZLinq;
 
 namespace Warden.Services;
 
 [AutoExtractInterface(Interfaces = [typeof(IDisposable)])]
+[UsedImplicitly]
 public sealed class ThemeService : IThemeService, ISingletonDependency
 {
     private readonly IDisposable _subscriptions;
-    private readonly AppearanceSetting _appearanceSetting;
+    private readonly AppearanceOptions _appearanceOptions;
 
     private bool _initialized;
 
     public ThemeService(ISettingsService settingsService)
     {
-        _appearanceSetting = settingsService.Get<AppearanceSetting>();
+        _appearanceOptions = settingsService.Get<AppearanceOptions>();
         _subscriptions = Disposable.Combine(
-            _appearanceSetting
+            _appearanceOptions
                 .ObservePropertyChanged(x => x.Theme, false)
                 .ObserveOnUIThreadDispatcher()
                 .Subscribe(ChangeTheme),
-            _appearanceSetting
+            _appearanceOptions
                 .ObservePropertyChanged(x => x.ThemeColor)
                 .ObserveOnUIThreadDispatcher()
                 .Subscribe(colorThemeDisplayName =>
@@ -41,9 +43,9 @@ public sealed class ThemeService : IThemeService, ISingletonDependency
 
     private static SukiTheme SukiTheme => field ??= SukiTheme.GetInstance();
 
-    public Theme CurrentTheme => _appearanceSetting.Theme;
+    public Theme CurrentTheme => _appearanceOptions.Theme;
 
-    public SukiColorTheme CurrentColorTheme => ResolveColorTheme(_appearanceSetting.ThemeColor);
+    public SukiColorTheme CurrentColorTheme => ResolveColorTheme(_appearanceOptions.ThemeColor);
 
     public IAvaloniaReadOnlyList<SukiColorTheme> ColorThemes => SukiTheme.ColorThemes;
 
@@ -57,14 +59,14 @@ public sealed class ThemeService : IThemeService, ISingletonDependency
             new SukiColorTheme("White", new Color(255, 255, 255, 255), new Color(255, 0, 0, 0)),
             new SukiColorTheme("Black", new Color(255, 0, 0, 0), new Color(255, 255, 255, 255)),
         ]);
-        ChangeTheme(_appearanceSetting.Theme);
-        ChangeColorTheme(ResolveColorTheme(_appearanceSetting.ThemeColor));
+        ChangeTheme(_appearanceOptions.Theme);
+        ChangeColorTheme(ResolveColorTheme(_appearanceOptions.ThemeColor));
         _initialized = true;
     }
 
     public void ChangeTheme(Theme theme)
     {
-        _appearanceSetting.Theme = theme;
+        _appearanceOptions.Theme = theme;
         var variant = theme switch
         {
             Theme.System => ThemeVariant.Default,
@@ -77,7 +79,7 @@ public sealed class ThemeService : IThemeService, ISingletonDependency
 
     public void ChangeColorTheme(SukiColorTheme colorTheme)
     {
-        _appearanceSetting.ThemeColor = colorTheme.DisplayName;
+        _appearanceOptions.ThemeColor = colorTheme.DisplayName;
         SukiTheme.ChangeColorTheme(colorTheme);
     }
 

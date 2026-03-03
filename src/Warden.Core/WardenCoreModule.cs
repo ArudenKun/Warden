@@ -1,4 +1,7 @@
-﻿using Volo.Abp.Caching;
+﻿using Volo.Abp.BackgroundJobs;
+using Volo.Abp.BackgroundWorkers;
+using Volo.Abp.Caching;
+using Volo.Abp.Guids;
 using Volo.Abp.Modularity;
 using Volo.Abp.ObjectExtending;
 using Volo.Abp.ObjectMapping;
@@ -10,6 +13,9 @@ namespace Warden.Core;
     typeof(AbpCachingModule),
     typeof(AbpObjectExtendingModule),
     typeof(AbpObjectMappingModule),
-    typeof(AbpTimingModule)
+    typeof(AbpBackgroundJobsModule),
+    typeof(AbpBackgroundWorkersModule),
+    typeof(AbpTimingModule),
+    typeof(AbpGuidsModule)
 )]
 public sealed class WardenCoreModule : AbpModule { }

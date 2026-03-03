@@ -19,7 +19,7 @@ public sealed partial class SetupViewModel : ViewModel, IRecipient<NextSetupMess
     [RelayCommand]
     private void Finish()
     {
-        GeneralSetting.IsSetup = false;
+        GeneralOptions.IsSetup = false;
     }
 
     public override void OnLoaded()

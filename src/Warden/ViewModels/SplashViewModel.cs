@@ -22,7 +22,7 @@ public sealed partial class SplashViewModel : ViewModel
 
     private async Task StartAsync()
     {
-        if (GeneralSetting.ShowConsole)
+        if (GeneralOptions.ShowConsole)
         {
             // Messenger.Send(new ConsoleWindowShowMessage());
         }
@@ -30,7 +30,7 @@ public sealed partial class SplashViewModel : ViewModel
         await Task.Delay(1.Seconds());
         StatusText = "Loading Settings";
         await Task.Delay(200.Milliseconds());
-        var message = GeneralSetting.IsSetup
+        var message = GeneralOptions.IsSetup
             ? new SplashFinishedMessage(typeof(SetupViewModel))
             : new SplashFinishedMessage(typeof(MainViewModel));
         Messenger.Send(message);

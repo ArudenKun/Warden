@@ -68,11 +68,11 @@
                         Header="LogLevel"
                         IconKind="Logs">
                         <ComboBox
-                            ItemsSource="{Binding LoggingSetting.LogEventLevel,
+                            ItemsSource="{Binding LoggingOptions.LogEventLevel,
                                                   Converter={x:Static warden:EnumToEnumerableConverter.Instance},
                                                   Mode=OneTime}"
                             PlaceholderText="LogLevel"
-                            SelectedItem="{Binding LoggingSetting.LogEventLevel}" />
+                            SelectedItem="{Binding LoggingOptions.LogEventLevel}" />
                     </warden:SettingsRow>
                     <TextBlock
                         Classes="SettingsRowHeader"
@@ -96,11 +96,11 @@
                         Header="Theme"
                         IconKind="SunMoon">
                         <ComboBox
-                            ItemsSource="{Binding AppearanceSetting.Theme,
+                            ItemsSource="{Binding AppearanceOptions.Theme,
                                                   Converter={x:Static warden:EnumToEnumerableConverter.Instance},
                                                   Mode=OneTime}"
                             PlaceholderText="Theme"
-                            SelectedItem="{Binding AppearanceSetting.Theme}" />
+                            SelectedItem="{Binding AppearanceOptions.Theme}" />
                     </warden:SettingsRow>
                     <warden:SettingsRow
                         Description="Test Description"
@@ -108,7 +108,7 @@
                         IconKind="Palette">
                         <ComboBox
                             ItemsSource="{Binding ColorThemes}"
-                            SelectedItem="{Binding AppearanceSetting.ThemeColor}" />
+                            SelectedItem="{Binding AppearanceOptions.ThemeColor}" />
                     </warden:SettingsRow>
                 </StackPanel>
             </TabItem>

@@ -18,10 +18,11 @@
         <Setter Property="VerticalContentAlignment" Value="Top" />
         <Setter Property="UseAlternativeHeaderStyle" Value="True" />
     </Style>
+    <StyleInclude Source="avares://Warden.Core.UI/WardenCoreUIStyles.axaml" />
     <Styles.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="/Controls/NumericTextBox.axaml" />
+                <!-- <ResourceInclude Source="/Controls/NumericTextBox.axaml" /> -->
                 <!-- <ResourceInclude Source="/Controls/SwitchPresenter.axaml" /> -->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -2,9 +2,9 @@
 using Avalonia.Controls.Notifications;
 using SukiUI.Toasts;
 using Volo.Abp.DependencyInjection;
+using Warden.Core.Settings;
 using Warden.Models;
-using Warden.Services.Settings;
-using Warden.Settings;
+using Warden.Options;
 
 namespace Warden.Services;
 
@@ -12,12 +12,12 @@ namespace Warden.Services;
 public sealed class ToastService : IToastService, ISingletonDependency
 {
     private readonly ISukiToastManager _manager;
-    private readonly AppearanceSetting _appearanceSetting;
+    private readonly AppearanceOptions _appearanceOptions;
 
     public ToastService(ISukiToastManager manager, ISettingsService settingsService)
     {
         _manager = manager;
-        _appearanceSetting = settingsService.Get<AppearanceSetting>();
+        _appearanceOptions = settingsService.Get<AppearanceOptions>();
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public sealed class ToastService : IToastService, ISingletonDependency
         if (autoDismiss)
         {
             toast.SetCanDismissByClicking(true);
-            toast.SetDismissAfter(_appearanceSetting.ToastDuration);
+            toast.SetDismissAfter(_appearanceOptions.ToastDuration);
         }
 
         if (!string.IsNullOrWhiteSpace(title))

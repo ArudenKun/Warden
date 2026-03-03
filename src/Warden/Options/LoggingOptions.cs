@@ -2,9 +2,9 @@
 using Humanizer;
 using Serilog.Events;
 
-namespace Warden.Settings;
+namespace Warden.Options;
 
-public sealed partial class LoggingSetting : ObservableObject
+public sealed partial class LoggingOptions : ObservableObject
 {
     public const string Template =
         "[{Timestamp:yyyy-MM-dd HH:mm:ss}][{Level:u3}][{SourceContext}] {Message:lj}{NewLine}{Exception}";

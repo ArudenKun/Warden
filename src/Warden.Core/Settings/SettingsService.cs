@@ -1,16 +1,18 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Volo.Abp.DependencyInjection;
 
 namespace Warden.Core.Settings;
 
-[AutoExtractInterface(Interfaces = [typeof(IDisposable)])]
-public class SettingsService : ISettingsService
+[AutoExtractInterface]
+public class SettingsService : ISettingsService, IDisposable, ISingletonDependency
 {
+    private readonly ILogger<SettingsService> _logger;
     private readonly ConcurrentDictionary<Type, Lazy<object>> _settings = new();
     private readonly ConcurrentDictionary<Type, JsonTypeInfo> _settingsJsonTypeInfo = new();
     private readonly JsonSerializerOptions _jsonSerializerOptions;
@@ -20,40 +22,15 @@ public class SettingsService : ISettingsService
     /// <summary>
     /// Initializes an instance of <see cref="SettingsService" />.
     /// </summary>
-    /// <remarks>
-    /// If you are relying on compile-time serialization, the <paramref name="jsonSerializerOptions" /> instance
-    /// must have a valid <see cref="JsonSerializerOptions.TypeInfoResolver"/> set.
-    /// </remarks>
-    protected SettingsService(string filePath, JsonSerializerOptions jsonSerializerOptions)
+    public SettingsService(
+        IOptions<SettingsServiceOptions> settingsServiceOptions,
+        ILogger<SettingsService> logger
+    )
     {
-        FilePath = filePath;
-        _jsonSerializerOptions = jsonSerializerOptions;
+        _logger = logger;
+        FilePath = settingsServiceOptions.Value.FilePath;
+        _jsonSerializerOptions = settingsServiceOptions.Value.JsonSerializerOptions;
     }
-
-    /// <summary>
-    /// Initializes an instance of <see cref="SettingsService" />.
-    /// </summary>
-    protected SettingsService(string filePath, IJsonTypeInfoResolver jsonTypeInfoResolver)
-        : this(
-            filePath,
-            new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                TypeInfoResolver = jsonTypeInfoResolver,
-            }
-        ) { }
-
-    /// <summary>
-    /// Initializes an instance of <see cref="SettingsService" />.
-    /// </summary>
-    [RequiresUnreferencedCode(
-        "This constructor initializes the settings manager with reflection-based serialization, which is incompatible with assembly trimming."
-    )]
-    [RequiresDynamicCode(
-        "This constructor initializes the settings manager with reflection-based serialization, which is incompatible with ahead-of-time compilation."
-    )]
-    protected SettingsService(string filePath)
-        : this(filePath, new DefaultJsonTypeInfoResolver()) { }
 
     public string FilePath { get; }
 
@@ -69,6 +46,7 @@ public class SettingsService : ISettingsService
         if (settingsList.Length < 1)
             return;
 
+        _logger.LogInformation("Saving");
         try
         {
             JsonObject? rootNode = null;
@@ -137,6 +115,8 @@ public class SettingsService : ISettingsService
                 );
                 rootNode.WriteTo(writer, _jsonSerializerOptions);
             }
+
+            _logger.LogInformation("Saved");
         }
         catch (Exception ex)
         {

@@ -1,4 +1,4 @@
-﻿namespace Warden.Dependency;
+﻿namespace Warden.Core;
 
 public interface IInitializer
 {

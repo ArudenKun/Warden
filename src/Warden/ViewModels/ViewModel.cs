@@ -7,10 +7,10 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Warden.Core;
+using Warden.Core.Settings;
 using Warden.Messaging.Messages;
+using Warden.Options;
 using Warden.Services;
-using Warden.Services.Settings;
-using Warden.Settings;
 
 namespace Warden.ViewModels;
 
@@ -21,16 +21,16 @@ public abstract partial class ViewModel : ViewModelBase
 
     protected IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
-    protected SettingsService SettingsService =>
-        ServiceProvider.GetRequiredService<SettingsService>();
+    protected ISettingsService SettingsService =>
+        ServiceProvider.GetRequiredService<ISettingsService>();
 
     protected IThemeService ThemeService => ServiceProvider.GetRequiredService<IThemeService>();
 
-    public GeneralSetting GeneralSetting => SettingsService.Get<GeneralSetting>();
+    public GeneralOptions GeneralOptions => SettingsService.Get<GeneralOptions>();
 
-    public AppearanceSetting AppearanceSetting => SettingsService.Get<AppearanceSetting>();
+    public AppearanceOptions AppearanceOptions => SettingsService.Get<AppearanceOptions>();
 
-    public LoggingSetting LoggingSetting => SettingsService.Get<LoggingSetting>();
+    public LoggingOptions LoggingOptions => SettingsService.Get<LoggingOptions>();
 
     public IStorageProvider StorageProvider =>
         ServiceProvider.GetRequiredService<IStorageProvider>();

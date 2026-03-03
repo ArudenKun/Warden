@@ -8,7 +8,7 @@ using R3;
 using R3.ObservableEvents;
 using Volo.Abp;
 using Volo.Abp.Modularity;
-using Warden.Dependency;
+using Warden.Core.Settings;
 
 namespace Warden.Core;
 
@@ -36,6 +36,11 @@ public sealed class WardenCoreUIModule : AbpModule
 #if DEBUG
         Ioc.Default.ConfigureServices(context.ServiceProvider);
 #endif
+    }
+
+    public override void OnApplicationShutdown(ApplicationShutdownContext context)
+    {
+        context.ServiceProvider.GetRequiredService<ISettingsService>().Dispose();
     }
 
     private static void ConfigureInitializer(ContainerBuilder containerBuilder) =>

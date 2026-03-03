@@ -6,9 +6,9 @@ using Humanizer;
 using SukiUI.Enums;
 using Warden.Models;
 
-namespace Warden.Settings;
+namespace Warden.Options;
 
-public sealed partial class AppearanceSetting : ObservableObject
+public sealed partial class AppearanceOptions : ObservableObject
 {
     [ObservableProperty]
     public partial Theme Theme { get; set; } = Theme.System;
