@@ -6,16 +6,16 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antelcat.AutoGen" Version="3.0.5" />
-    <PackageReference Include="Humanizer.Core" Version="3.0.1" />
+    <PackageReference Include="Humanizer.Core" Version="3.0.8" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     <PackageReference Include="Nito.AsyncEx.Context" Version="5.1.2" />
-    <PackageReference Include="Volo.Abp.BackgroundJobs" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.BackgroundWorkers" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.Caching" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.Guids" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.ObjectExtending" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.ObjectMapping" Version="10.1.0" />
-    <PackageReference Include="Volo.Abp.Timing" Version="10.1.0" />
+    <PackageReference Include="Volo.Abp.BackgroundJobs" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.BackgroundWorkers" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.Caching" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.Guids" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.ObjectExtending" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.ObjectMapping" Version="10.1.1" />
+    <PackageReference Include="Volo.Abp.Timing" Version="10.1.1" />
     <PackageReference Include="ZLinq.FileSystem" Version="1.5.5" />
     <PackageReference Include="ZLinq.Json" Version="1.5.5" />
   </ItemGroup>
