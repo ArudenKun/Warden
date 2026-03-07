@@ -19,6 +19,7 @@ using Volo.Abp.IO;
 using Volo.Abp.Modularity.PlugIns;
 using Warden.Core;
 using Warden.Core.Extensions;
+using Warden.Core.Options;
 using Warden.Core.Settings;
 using Warden.Options;
 using Warden.Services;
@@ -46,6 +47,7 @@ public static class Program
                 .Get<LoggingOptions>()
                 .LogEventLevel
         );
+        Console.WriteLine(AppHelper.SettingsPath);
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(LogHelper.LoggingLevelSwitch)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -73,6 +75,7 @@ public static class Program
             options.Services.AddLogging(builder =>
                 builder.ClearProviders().AddSerilog(dispose: true)
             );
+            options.Services.AddMutableOptions(AppHelper.DataDir.CombinePath("test-options.json"));
             options.UseAutofac();
         });
 

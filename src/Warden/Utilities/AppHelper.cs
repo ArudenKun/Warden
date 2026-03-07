@@ -48,7 +48,4 @@ public static class AppHelper
     public static string LogsDir => DataDir.CombinePath("Logs");
     public static string SettingsPath => DataDir.CombinePath(AppConsts.SettingsFileName);
     public static string ToolsDir => DataDir.CombinePath("Tools");
-
-    public static string BackgroundJobsWorkersConnectionString =>
-        DataDir.CombinePath("background_jobs_workers.db");
 }
