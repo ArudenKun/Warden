@@ -4,7 +4,7 @@ namespace Warden.Core.Options;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddPersistenceOptions(
+    public static IServiceCollection AddMutableOptions(
         this IServiceCollection services,
         string filePath
     )
