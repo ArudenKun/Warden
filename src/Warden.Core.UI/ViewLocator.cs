@@ -17,9 +17,8 @@ public class ViewLocator : IDataTemplate, ISingletonDependency
         _serviceProvider = serviceProvider;
     }
 
-    public TView CreateView<TView, TViewModel>(TViewModel viewModel)
+    public TView CreateView<TView>(ViewModelBase viewModel)
         where TView : Control
-        where TViewModel : ViewModelBase
     {
         return (TView)CreateView(viewModel);
     }

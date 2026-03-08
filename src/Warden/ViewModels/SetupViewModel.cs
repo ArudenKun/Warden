@@ -2,13 +2,19 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using SukiUI.Controls;
 using Volo.Abp.DependencyInjection;
 using Warden.Messaging.Messages;
 
 namespace Warden.ViewModels;
 
-public sealed partial class SetupViewModel : ViewModel, IRecipient<NextSetupMessage>
+public sealed partial class SetupViewModel
+    : ViewModel,
+        IRecipient<NextSetupMessage>,
+        ISukiStackPageTitleProvider
 {
+    string ISukiStackPageTitleProvider.Title => "Setup";
+
     [DisablePropertyInjection]
     [ObservableProperty]
     public partial ViewModel ViewModel { get; set; } = null!;

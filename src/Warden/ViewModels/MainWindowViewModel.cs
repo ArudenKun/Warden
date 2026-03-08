@@ -1,17 +1,19 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp.DependencyInjection;
 using Warden.Messaging.Messages;
+using Warden.Views;
 
 namespace Warden.ViewModels;
 
 [Dependency(ServiceLifetime.Singleton)]
 public sealed partial class MainWindowViewModel
     : ViewModel,
-        IRecipient<ShowPageMessage>,
+        // IRecipient<ShowPageMessage>,
         IRecipient<SplashFinishedMessage>
 {
     private bool _isInitialized;
@@ -19,30 +21,32 @@ public sealed partial class MainWindowViewModel
     public required ISukiToastManager SukiToastManager { get; init; }
     public required ISukiDialogManager SukiDialogManager { get; init; }
 
-    [DisablePropertyInjection]
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSplashView))]
-    [NotifyCanExecuteChangedFor(nameof(ShowPageCommand))]
-    public partial ViewModel ContentViewModel { get; set; } = null!;
-
-    public bool IsSplashView => ContentViewModel is SplashViewModel;
-
-    protected override bool CanExecuteShowPage() => !IsSplashView;
+    public bool IsSplashView =>
+        NavigationHostManager.GetHost(Regions.Main)?.CurrentContent is SplashView;
 
     public override void OnLoaded()
     {
         if (!_isInitialized)
         {
-            ContentViewModel = ServiceProvider.GetRequiredService<SplashViewModel>();
+            OnPropertyChanged(nameof(IsSplashView));
+            NavigationHostManager.Navigate<SplashView>(Regions.Main);
+            OnPropertyChanged(nameof(IsSplashView));
+            // ContentViewModel = ServiceProvider.GetRequiredService<SplashViewModel>();
         }
 
         _isInitialized = true;
     }
 
-    public void Receive(ShowPageMessage message) => ChangePage(message);
+    [RelayCommand]
+    private void ShowSettings()
+    {
+        var contentType = NavigationHostManager.GetHost(Regions.Main)?.CurrentContent?.GetType();
+        NavigationHostManager.Navigate<SettingsView>(Regions.Main, contentType);
+    }
 
-    public void Receive(SplashFinishedMessage message) => ChangePage(message.ViewModelType);
-
-    private void ChangePage(Type viewModelType) =>
-        ContentViewModel = (ViewModel)ServiceProvider.GetRequiredService(viewModelType);
+    public void Receive(SplashFinishedMessage message)
+    {
+        NavigationHostManager.Navigate(Regions.Main, message.ViewType);
+        OnPropertyChanged(nameof(IsSplashView));
+    }
 }

@@ -47,7 +47,6 @@ public static class Program
                 .Get<LoggingOptions>()
                 .LogEventLevel
         );
-        Console.WriteLine(AppHelper.SettingsPath);
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(LogHelper.LoggingLevelSwitch)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -134,12 +133,11 @@ public static class Program
 
     // Avalonia configuration, don't remove; also used by visual designer.
     // ReSharper disable once UnusedMember.Global
-    private static AppBuilder BuildAvaloniaApp() =>
+    public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder
             .Configure<App>()
             .UseR3(ex => LogHelper.Error(ex, "Unhandled R3 Exception"))
             .UsePlatformDetect()
-            .WithInterFont()
             .LogToTrace();
 
     private static IDisposable SubscribeExceptionEvents(

@@ -40,7 +40,7 @@ public sealed class WardenCoreUIModule : AbpModule
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
-        context.ServiceProvider.GetRequiredService<ISettingsService>().Dispose();
+        context.ServiceProvider.GetRequiredService<ISettingsService>().Save();
     }
 
     private static void ConfigureInitializer(ContainerBuilder containerBuilder) =>

@@ -1,14 +1,14 @@
 ﻿using System.Diagnostics;
+using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Warden.Core;
+using Warden.Core.Navigation;
 using Warden.Core.Settings;
-using Warden.Messaging.Messages;
 using Warden.Options;
 using Warden.Services;
 
@@ -37,6 +37,9 @@ public abstract partial class ViewModel : ViewModelBase
 
     public IClipboard Clipboard => ServiceProvider.GetRequiredService<IClipboard>();
     public ILauncher Launcher => ServiceProvider.GetRequiredService<ILauncher>();
+
+    public INavigationHostManager NavigationHostManager =>
+        LazyServiceProvider.GetRequiredService<INavigationHostManager>();
 
     protected override async Task SetBusyAsync(
         Func<Task> func,
@@ -79,13 +82,13 @@ public abstract partial class ViewModel : ViewModelBase
 
     protected virtual bool CanExecuteShowPage() => true;
 
-    protected virtual Task ShowPageAsync<TViewModel>()
-        where TViewModel : ViewModel => ShowPageAsync(typeof(TViewModel));
+    protected virtual Task ShowPageAsync<TView>()
+        where TView : Control => ShowPageAsync(typeof(TView));
 
     [RelayCommand(CanExecute = nameof(CanExecuteShowPage))]
     protected virtual Task ShowPageAsync(Type pageType)
     {
-        Messenger.Send(new ShowPageMessage(pageType));
+        NavigationHostManager.Navigate(Regions.Main, pageType);
         return Task.CompletedTask;
     }
 }

@@ -13,6 +13,7 @@ using Volo.Abp.Quartz;
 using Volo.Abp.Timing;
 using Volo.Abp.VirtualFileSystem;
 using Warden.Core;
+using Warden.Core.Navigation.Extensions;
 using Warden.Core.Settings;
 using Warden.Data;
 using Warden.Localization;
@@ -35,16 +36,18 @@ public sealed class WardenModule : AbpModule
         PreConfigure<AbpQuartzOptions>(options =>
             options.Configurator = builder => builder.UseSimpleTypeLoader()
         );
-
-        PreConfigure<SettingsServiceOptions>(options =>
-        {
-            options.FilePath = AppHelper.SettingsPath;
-        });
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        context.Services.AddNavigationHost();
         context.Services.AddSingleton<ILocalizer, AbpLocalizer<WardenResource>>();
+
+        Configure<SettingsServiceOptions>(options =>
+        {
+            options.FilePath = AppHelper.SettingsPath;
+        });
+
         Configure<AbpLocalizationOptions>(options =>
         {
             options.Resources.Add<WardenResource>("en").AddVirtualJson("/Localization/Warden");

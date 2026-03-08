@@ -24,12 +24,12 @@
             Source="/Assets/logo.ico" />
     </suki:SukiWindow.LogoContent>
     <suki:SukiWindow.RightWindowTitleBarControls>
+        <!--  ReSharper disable once Xaml.StyleClassNotFound  -->
         <Button
             Classes="WindowControlsButton"
-            Command="{Binding ShowPageCommand}"
-            CommandParameter="{x:Type warden:SettingsViewModel}"
+            Command="{Binding ShowSettingsCommand}"
             Content="{LucideIconContent Settings}"
             IsVisible="{Binding !IsSplashView}" />
     </suki:SukiWindow.RightWindowTitleBarControls>
-    <suki:SukiTransitioningContentControl Content="{Binding ContentViewModel}" />
+    <warden:NavigationHost warden:NavigationHostManager.HostName="{x:Static warden:Regions.Main}" />
 </suki:SukiWindow>
