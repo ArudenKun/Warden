@@ -11,10 +11,10 @@ public static class ViewModelExtensions
         if (viewModel.GetProperty("Disposables") is not CompositeDisposable disposables)
         {
             disposables = new CompositeDisposable();
-            viewModel.SetProperty("Disposables", disposables);
         }
 
         disposables.Add(disposable);
+        viewModel.SetProperty("Disposables", disposables);
         return disposable;
     }
 }

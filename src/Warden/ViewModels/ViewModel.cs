@@ -80,15 +80,17 @@ public abstract partial class ViewModel : ViewModelBase
         return shouldCatch;
     }
 
-    protected virtual bool CanExecuteShowPage() => true;
+    protected virtual bool CanExecuteNavigate() => true;
 
-    protected virtual Task ShowPageAsync<TView>()
-        where TView : Control => ShowPageAsync(typeof(TView));
-
-    [RelayCommand(CanExecute = nameof(CanExecuteShowPage))]
-    protected virtual Task ShowPageAsync(Type pageType)
+    protected virtual async Task NavigateAsync<TView>()
+        where TView : Control
     {
-        NavigationHostManager.Navigate(Regions.Main, pageType);
-        return Task.CompletedTask;
+        await NavigateAsync(typeof(TView));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExecuteNavigate))]
+    protected virtual async Task NavigateAsync(Type viewType)
+    {
+        await NavigationHostManager.NavigateAsync(Regions.Main, viewType);
     }
 }

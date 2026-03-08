@@ -12,6 +12,6 @@ public sealed partial class SetupToolsViewModel : ViewModel, ISukiStackPageTitle
     private async Task FinishAsync()
     {
         GeneralOptions.IsSetup = false;
-        await ShowPageAsync<MainView>();
+        await NavigateAsync<MainView>();
     }
 }
