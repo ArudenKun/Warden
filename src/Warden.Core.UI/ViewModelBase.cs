@@ -25,6 +25,8 @@ public abstract partial class ViewModelBase
         this.SetDefaultsForExtraProperties();
     }
 
+    public Type ViewType { get; set; } = null!;
+
     public required IServiceProvider ServiceProvider { protected get; init; }
 
     public required IAbpLazyServiceProvider LazyServiceProvider { protected get; init; }

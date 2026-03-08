@@ -31,6 +31,7 @@ public class ViewLocator : IDataTemplate, ISingletonDependency
         if (_serviceProvider.GetService(viewType) is not Control view)
             return CreateText($"Could not find view for {viewModelType.FullName}");
 
+        viewModel.ViewType = viewType;
         view.DataContext = viewModel;
         return view;
     }

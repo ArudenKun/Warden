@@ -66,4 +66,15 @@
   <ItemGroup>
     <Folder Include="Views\Dialogs\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\Components\SetupThemeStepView.axaml.cs">
+      <DependentUpon>SetupThemeView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Components\SetupToolsStepView.axaml.cs">
+      <DependentUpon>SetupToolsView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
 </Project>

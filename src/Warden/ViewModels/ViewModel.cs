@@ -80,6 +80,17 @@ public abstract partial class ViewModel : ViewModelBase
         return shouldCatch;
     }
 
+    protected virtual void Navigate<TView>()
+        where TView : Control
+    {
+        Navigate(typeof(TView));
+    }
+
+    protected virtual void Navigate(Type viewType)
+    {
+        NavigationHostManager.Navigate(Regions.Main, viewType);
+    }
+
     protected virtual bool CanExecuteNavigate() => true;
 
     protected virtual async Task NavigateAsync<TView>()
