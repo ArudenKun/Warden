@@ -1,0 +1,16 @@
+﻿namespace Warden.Core.Histories;
+
+/// <summary>
+/// Represents a transaction to record multiple undo operations as a single operation in the history of a <see cref="IHistory"/>.
+/// </summary>
+public interface IUndoTransaction : IDisposable
+{
+    /// <summary>
+    /// Groups all recorded operations in a single <see cref="GroupUndo"/> and add it to the history of the <see cref="IHistory"/> instance this instance was created from.
+    /// If this method is not called before disposing current instance, all recorded operations will be undone.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"></exception>
+    /// <exception cref="InvalidOperationException">Current transaction has already been committed</exception>
+    /// <exception cref="InvalidOperationException">Current transaction is not the highest one on the stack</exception>
+    void Commit();
+}

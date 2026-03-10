@@ -1,8 +1,10 @@
-﻿namespace Warden.ViewModels.Components;
+﻿using SukiUI.Controls;
 
-public abstract partial class SetupStepViewModel : ViewModel
+namespace Warden.ViewModels.Components;
+
+public abstract partial class SetupStepViewModel : ViewModel, ISukiStackPageTitleProvider
 {
     public abstract int StepIndex { get; }
 
-    public abstract string Header { get; }
+    public abstract string Title { get; }
 }

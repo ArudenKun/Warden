@@ -5,7 +5,6 @@ using Warden.Core.Navigation;
 using Warden.Messaging.Messages;
 using Warden.ViewModels.Components;
 using Warden.Views;
-using ZLinq;
 
 namespace Warden.ViewModels;
 
@@ -14,54 +13,63 @@ public sealed partial class SetupViewModel
         INavigationAware,
         IRecipient<SetupFinishedMessage>
 {
-    private readonly Queue<SetupStepViewModel> _nextSteps = new();
-    private readonly Stack<SetupStepViewModel> _backSteps = new();
-
-    private bool _isInitialized;
+    private readonly List<SetupStepViewModel> _allSteps;
+    private readonly Stack<SetupStepViewModel> _backStack = new();
 
     public SetupViewModel(IEnumerable<SetupStepViewModel> stepViewModels)
     {
-        foreach (var stepViewModel in stepViewModels.AsValueEnumerable().OrderBy(x => x.StepIndex))
-        {
-            _nextSteps.Enqueue(stepViewModel);
-        }
+        _allSteps = stepViewModels.OrderByDescending(x => x.StepIndex).ToList();
+        Steps = new Queue<SetupStepViewModel>(_allSteps);
     }
 
     [ObservableProperty]
-    public partial string Header { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial int StepIndex { get; set; } = 0;
-
-    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(BackCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial SetupStepViewModel? Step { get; set; }
 
-    [RelayCommand]
+    public Queue<SetupStepViewModel> Steps { get; private set; }
+
+    private bool CanExecuteNext() => Steps.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanExecuteNext))]
     private void Next()
     {
-        if (_nextSteps.Count is 0)
+        if (Step is not null)
         {
-            Navigate<MainView>();
-            return;
+            _backStack.Push(Step);
         }
 
-        Step = _nextSteps.Dequeue();
-        Header = Step.Header;
-        StepIndex = Step.StepIndex;
-        _backSteps.Push(Step);
+        // 2. Fix: Use TryDequeue to prevent exceptions if the queue is empty
+        if (Steps.TryDequeue(out var nextStep))
+        {
+            Step = nextStep;
+        }
+        else
+        {
+            Navigate<MainView>();
+        }
+
         BackCommand.NotifyCanExecuteChanged();
     }
 
-    private bool CanExecuteBack() => _backSteps.Count > 0;
+    private bool CanExecuteBack() => _backStack.Count > 0;
 
     [RelayCommand(CanExecute = nameof(CanExecuteBack))]
     private void Back()
     {
-        Step = _backSteps.Pop();
-        Header = Step.Header;
-        StepIndex = Step.StepIndex;
-        _nextSteps.Enqueue(Step);
-        BackCommand.NotifyCanExecuteChanged();
+        if (_backStack.TryPop(out var previousStep))
+        {
+            if (Step is not null)
+            {
+                var remainingSteps = Steps.ToList();
+                remainingSteps.Insert(0, Step);
+                Steps = new Queue<SetupStepViewModel>(remainingSteps);
+            }
+
+            Step = previousStep;
+        }
+
+        NextCommand.NotifyCanExecuteChanged();
     }
 
     public bool CanNavigateTo(object? parameter)
@@ -71,6 +79,7 @@ public sealed partial class SetupViewModel
 
     public void OnNavigatedTo(object? parameter)
     {
+        ResetSteps();
         Next();
     }
 
@@ -79,22 +88,13 @@ public sealed partial class SetupViewModel
         return true;
     }
 
-    public void OnNavigatedFrom()
-    {
-        foreach (var stepViewModel in _nextSteps)
-        {
-            stepViewModel.Dispose();
-        }
+    public void OnNavigatedFrom() { }
 
-        foreach (var stepViewModel in _backSteps)
-        {
-            stepViewModel.Dispose();
-        }
-    }
-
-    public override void OnLoaded()
+    private void ResetSteps()
     {
-        BackCommand.NotifyCanExecuteChanged();
+        _backStack.Clear();
+        Steps = new Queue<SetupStepViewModel>(_allSteps);
+        Step = null;
     }
 
     public void Receive(SetupFinishedMessage message) => Navigate<MainView>();

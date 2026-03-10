@@ -1,0 +1,74 @@
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Warden.Core.Histories;
+
+/// <summary>
+/// Provides an implementation of the <see cref="IUndo"/> interface for <see cref="IList{T}"/> operation.
+/// </summary>
+/// <typeparam name="T">The type of element in the <see cref="IList{T}"/>.</typeparam>
+public sealed class ListUndo<T> : IUndo
+{
+    private readonly object? _description;
+    private readonly IList<T> _source;
+    private readonly int _index;
+
+    [AllowNull]
+    private readonly T _item;
+    private readonly bool _isAdd;
+
+    /// <summary>
+    /// Initialises an instance of <see cref="ListUndo{T}"/>.
+    /// </summary>
+    /// <param name="description">The description of this <see cref="IUndo"/></param>
+    /// <param name="source">The <see cref="IList{T}"/> on which the operation is performed.</param>
+    /// <param name="index">The index of the operation.</param>
+    /// <param name="item">The argument of the operation.</param>
+    /// <param name="isAdd">true if the operation is an <see cref="IList{T}.IndexOf(T)"/>, else false for a <see cref="IList{T}.RemoveAt(int)"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    public ListUndo(object? description, IList<T> source, int index, T? item, bool isAdd)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        _description = description;
+        _source = source;
+        _index = index;
+        _item = item;
+        _isAdd = isAdd;
+    }
+
+    /// <summary>
+    /// Initialises an instance of <see cref="ListUndo{T}"/>.
+    /// </summary>
+    /// <param name="source">The <see cref="IList{T}"/> on which the operation is performed.</param>
+    /// <param name="index">The index of the operation.</param>
+    /// <param name="item">The argument of the operation.</param>
+    /// <param name="isAdd">true if the operation is an <see cref="IList{T}.IndexOf(T)"/>, else false for a <see cref="IList{T}.RemoveAt(int)"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    public ListUndo(IList<T> source, int index, T? item, bool isAdd)
+        : this(null, source, index, item, isAdd) { }
+
+    private void Action(bool isAdd)
+    {
+        if (isAdd)
+        {
+            _source.Insert(_index, _item);
+        }
+        else
+        {
+            _source.RemoveAt(_index);
+        }
+    }
+
+    #region IUndo
+
+    /// <inheritdoc />
+    object? IUndo.Description => _description;
+
+    /// <inheritdoc />
+    void IUndo.Execute() => Action(_isAdd);
+
+    /// <inheritdoc />
+    void IUndo.Undo() => Action(!_isAdd);
+
+    #endregion
+}
