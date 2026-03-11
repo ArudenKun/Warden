@@ -66,12 +66,25 @@
                 DockPanel.Dock="Left"
                 FontSize="26"
                 Text="{Binding DisplayName}" />
-
-            <Button
-                suki:ButtonExtensions.Icon="{LucideIconContent ArrowLeft}"
-                Command="{Binding BackCommand}"
-                Content="Back"
-                DockPanel.Dock="Right" />
+            <StackPanel
+                DockPanel.Dock="Right"
+                Orientation="Horizontal"
+                Spacing="5">
+                <Button
+                    suki:ButtonExtensions.Icon="{LucideIconContent ArrowLeft}"
+                    Command="{Binding BackCommand}"
+                    Content="Back" />
+                <Button
+                    suki:ButtonExtensions.Icon="{LucideIconContent ArrowLeft}"
+                    Command="{Binding RedoCommand}"
+                    Content="Redo"
+                    IsVisible="{Binding UndoManager.CanRedo}" />
+                <Button
+                    suki:ButtonExtensions.Icon="{LucideIconContent ArrowLeft}"
+                    Command="{Binding UndoCommand}"
+                    Content="Undo"
+                    IsVisible="{Binding UndoManager.CanUndo}" />
+            </StackPanel>
         </DockPanel>
         <TabControl Grid.Row="1">
             <TabItem Header="General">

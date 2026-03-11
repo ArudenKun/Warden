@@ -1,10 +1,13 @@
 ﻿using Avalonia.Collections;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using R3;
+using R3.ObservableEvents;
 using Volo.Abp.DependencyInjection;
+using Warden.Core;
+using Warden.Core.Histories.Extensions;
 using Warden.Core.Navigation;
-using Warden.Core.Options;
-using Warden.Options;
 using Warden.Views;
 using ZLinq;
 
@@ -13,13 +16,7 @@ namespace Warden.ViewModels;
 [Dependency(ServiceLifetime.Singleton)]
 public sealed partial class SettingsViewModel : ViewModel, INavigationAware
 {
-    private readonly IOptionsMutable<LoggingOptions> _loggingOptions;
     private Type? _callerViewType;
-
-    public SettingsViewModel(IOptionsMutable<LoggingOptions> loggingOptions)
-    {
-        _loggingOptions = loggingOptions;
-    }
 
     public string DisplayName => "Settings";
 
@@ -32,6 +29,41 @@ public sealed partial class SettingsViewModel : ViewModel, INavigationAware
     private void Back()
     {
         NavigationHostManager.Navigate(Regions.Main, _callerViewType ?? typeof(MainView));
+    }
+
+    private bool CanExecuteRedo() => UndoManager.CanRedo;
+
+    [RelayCommand(CanExecute = nameof(CanExecuteRedo))]
+    private void Redo()
+    {
+        UndoManager.Redo();
+        UndoCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanExecuteUndo() => UndoManager.CanUndo;
+
+    [RelayCommand(CanExecute = nameof(CanExecuteUndo))]
+    private void Undo()
+    {
+        UndoManager.Undo();
+        RedoCommand.NotifyCanExecuteChanged();
+    }
+
+    public override void OnLoaded()
+    {
+        base.OnLoaded();
+
+        UndoManager
+            .Events()
+            .PropertyChanged.Subscribe(x =>
+            {
+                RedoCommand.NotifyCanExecuteChanged();
+                UndoCommand.NotifyCanExecuteChanged();
+            })
+            .AddTo(this);
+        AppearanceOptions.AsUndo(UndoManager).AddTo(this);
+        GeneralOptions.AsUndo(UndoManager).AddTo(this);
+        LoggingOptions.AsUndo(UndoManager).AddTo(this);
     }
 
     public bool CanNavigateTo(object? parameter)
@@ -47,10 +79,11 @@ public sealed partial class SettingsViewModel : ViewModel, INavigationAware
         }
     }
 
-    public bool CanNavigateFrom()
-    {
-        return true;
-    }
+    public bool CanNavigateFrom() => true;
 
-    public void OnNavigatedFrom() { }
+    public void OnNavigatedFrom()
+    {
+        Logger.LogInformation("OnNavigatedFrom");
+        UndoManager.Clear();
+    }
 }

@@ -5,16 +5,16 @@ namespace Warden.ViewModels;
 
 public static class ViewModelExtensions
 {
-    public static TDisposable AddTo<TDisposable>(this TDisposable disposable, ViewModel viewModel)
-        where TDisposable : IDisposable
-    {
-        if (viewModel.GetProperty("Disposables") is not CompositeDisposable disposables)
-        {
-            disposables = new CompositeDisposable();
-        }
-
-        disposables.Add(disposable);
-        viewModel.SetProperty("Disposables", disposables);
-        return disposable;
-    }
+    // public static TDisposable AddTo<TDisposable>(this TDisposable disposable, ViewModel viewModel)
+    //     where TDisposable : IDisposable
+    // {
+    //     if (viewModel.GetProperty("Disposables") is not CompositeDisposable disposables)
+    //     {
+    //         disposables = new CompositeDisposable();
+    //     }
+    //
+    //     disposables.Add(disposable);
+    //     viewModel.SetProperty("Disposables", disposables);
+    //     return disposable;
+    // }
 }
