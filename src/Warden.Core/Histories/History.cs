@@ -1,314 +1,630 @@
-﻿using System.ComponentModel;
-using Warden.Core.Histories.Internals;
+﻿using System.Collections.Specialized;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Warden.Core.Histories;
 
 /// <summary>
-/// Provides an implementation of the command pattern to execute operations and return to a previous state by undoing them.
+/// Service that records undoable actions and provides undo/redo operations.
 /// </summary>
-public sealed class History : IHistory
+public sealed class History
 {
-    private sealed class Transaction : IUndoTransaction
-    {
-        private readonly History _history;
-        private readonly object? _description;
-        private readonly List<IUndo> _commands;
+    private static readonly object DummyObject = new();
 
-        private bool _isCommitted;
-        private bool _isDisposed;
+    private readonly Stack<IHistoryAction> _undo = new();
+    private readonly Stack<IHistoryAction> _redo = new();
+    private readonly List<IObserver<UndoRedoState>> _observers = new();
+    private readonly object _sync = new();
 
-        public Transaction(History history, object? description)
-        {
-            _history = history;
-            _description = description;
-            _commands = [];
+    // tracker for Attach/Detach of objects
+    private readonly HistoryRegistrationTracker _tracker;
 
-            _isCommitted = false;
-            _isDisposed = false;
+    // Centralized store for all collection subscriptions to prevent duplicates.
+    private readonly Dictionary<INotifyCollectionChanged, IDisposable> _collectionSubscriptions =
+        new();
 
-            _history._transactions.Push(this);
-        }
+    // lighter reentrancy protection for Attach operations using weak references (does not keep objects alive)
+    private readonly ConditionalWeakTable<object, object> _attaching = new();
 
-        public void Add(IUndo command) => _commands.Add(command);
+    private bool _isApplying;
 
-        #region IUndoTransaction
-
-        public void Commit()
-        {
-            ObjectDisposedException.ThrowIf(_isDisposed, this);
-
-            if (_isCommitted)
-            {
-                throw new InvalidOperationException(
-                    "Current transaction has already been committed"
-                );
-            }
-
-            if (_history._transactions.Peek() != this)
-            {
-                throw new InvalidOperationException(
-                    "Current transaction is not the highest one on the stack"
-                );
-            }
-
-            _history._transactions.Pop();
-            if (_commands.Count > 0)
-            {
-                IUndo group = new GroupUndo(_description, [.. _commands]);
-                if (_history._transactions.Count > 0)
-                {
-                    _history._transactions.Peek().Add(group);
-                }
-                else
-                {
-                    _history.Push(group);
-                }
-            }
-
-            _isCommitted = true;
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        void IDisposable.Dispose()
-        {
-            if (!_isDisposed)
-            {
-                if (!_isCommitted)
-                {
-                    if (_history._transactions.Peek() != this)
-                    {
-                        throw new InvalidOperationException(
-                            "Current transaction is not the highest one on the stack"
-                        );
-                    }
-
-                    _history._transactions.Pop();
-
-                    for (int i = _commands.Count - 1; i >= 0; --i)
-                    {
-                        _commands[i].Undo();
-                    }
-                }
-
-                _isDisposed = true;
-                // ReSharper disable once GCSuppressFinalizeForTypeWithoutDestructor
-                GC.SuppressFinalize(this);
-            }
-        }
-
-        #endregion
-    }
-
-    private readonly IUndoStack _stack;
-    private readonly Stack<Transaction> _transactions;
-
-    private int _cyclicDepth;
-    private int _lastVersion;
+    // reentrancy protection for state notifications
+    private bool _isNotifying;
+    private bool _pendingNotification;
 
     /// <summary>
-    /// Initializes an instance of <see cref="History"/>.
+    /// Initializes a new instance of the <see cref="History"/> class with an optional logger.
     /// </summary>
-    /// <param name="maxCapacity">The maximum number of operation this <see cref="History"/> can record before erasing the oldest ones.</param>
-    public History(int maxCapacity)
+    /// <param name="logger">The logger to use.</param>
+    public History(ILogger? logger = null)
     {
-        if (maxCapacity <= 0)
-        {
-            throw new ArgumentException(
-                "maxCapacity must be superior to zero",
-                nameof(maxCapacity)
-            );
-        }
-
-        _stack = maxCapacity == int.MaxValue ? new UndoStack() : new UndoBuffer(maxCapacity);
-        _transactions = new Stack<Transaction>();
-
-        _cyclicDepth = 0;
-        Version = 0;
-        _lastVersion = 0;
+        Logger = logger ?? NullLogger.Instance;
+        _tracker = new HistoryRegistrationTracker(this, Logger);
     }
 
     /// <summary>
-    /// Initialises an instance of <see cref="History"/>.
+    /// Event raised when the undo/redo state changes.
     /// </summary>
-    public History()
-        : this(int.MaxValue) { }
-
-    private void Push(IUndo command) => Version = _stack.Push(command, ++_lastVersion, Version);
-
-    #region IUndoManager
+    public event EventHandler<UndoRedoState>? StateChanged;
 
     /// <summary>
-    /// Gets an <see cref="int"/> representing the state of the <see cref="IHistory"/>.
+    /// Gets the optional logger used by core components.
     /// </summary>
-    public int Version
+    public ILogger Logger { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the service is currently applying an undo/redo operation.
+    /// </summary>
+    public bool IsApplying
     {
-        get;
-        private set
+        get
         {
-            field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Version)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanUndo)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanRedo)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UndoDescriptions)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RedoDescriptions)));
+            lock (_sync)
+            {
+                return _isApplying;
+            }
         }
     }
 
     /// <summary>
-    /// Returns a boolean to express if the method <see cref="Undo"/> can be executed.
+    /// Gets a value indicating whether undo is available.
     /// </summary>
-    /// <returns>true if <see cref="Undo"/> can be executed, else false.</returns>
-    public bool CanUndo => _stack.CanUndo;
-
-    /// <summary>
-    /// Returns a boolean to express if the method <see cref="Redo"/> can be executed.
-    /// </summary>
-    /// <returns>true if <see cref="Redo"/> can be executed, else false.</returns>
-    public bool CanRedo => _stack.CanRedo;
-
-    /// <summary>
-    /// Gets the descriptions in order of all the <see cref="IUndo"/> which can be undone.
-    /// </summary>
-    public IEnumerable<object?> UndoDescriptions => _stack.UndoDescriptions;
-
-    /// <summary>
-    /// Gets the descriptions in order of all the <see cref="IUndo"/> which can be redone.
-    /// </summary>
-    public IEnumerable<object?> RedoDescriptions => _stack.RedoDescription;
-
-    /// <summary>
-    /// Starts a group of operation and return an <see cref="IUndoTransaction"/> to stop the group.
-    /// If <see cref="IUndoTransaction.Commit"/> is not called, all operations done during the transaction will be undone on <see cref="IDisposable.Dispose"/>.
-    /// </summary>
-    /// <param name="description">The description of the group of operations.</param>
-    /// <returns>An <see cref="IUndoTransaction"/> to commit or rollback the transaction of operations.</returns>
-    public IUndoTransaction BeginTransaction(object? description = null) =>
-        new Transaction(this, description);
-
-    /// <summary>
-    /// Clears the history of <see cref="IUndo"/> operations.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Cannot perform Clear while a transaction is going on.</exception>
-    public void Clear()
+    public bool CanUndo
     {
-        if (_transactions.Count > 0)
+        get
         {
-            throw new InvalidOperationException(
-                "Cannot perform Clear while a transaction is going on."
-            );
+            lock (_sync)
+            {
+                return _undo.Count > 0;
+            }
         }
-
-        _stack.Clear();
-
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanUndo)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanRedo)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UndoDescriptions)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RedoDescriptions)));
     }
 
     /// <summary>
-    /// Executes the <see cref="IUndo"/> command and stores it in the manager history.
+    /// Gets a value indicating whether redo is available.
     /// </summary>
-    /// <param name="command">The <see cref="IUndo"/> to execute.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="command"/> is null.</exception>
-    public void Execute(IUndo command)
+    public bool CanRedo
     {
-        ArgumentNullException.ThrowIfNull(command);
+        get
+        {
+            lock (_sync)
+            {
+                return _redo.Count > 0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the description of the top undo action if available.
+    /// </summary>
+    public string TopUndoDescription
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _undo.Count > 0 ? _undo.Peek().Description : null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the description of the top redo action if available.
+    /// </summary>
+    public string TopRedoDescription
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _redo.Count > 0 ? _redo.Peek().Description : string.Empty;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pushes an undoable action onto the stack. Actions pushed while the service is applying are ignored.
+    /// </summary>
+    /// <param name="action">The action to record.</param>
+    public void Push(IHistoryAction? action)
+    {
+        if (action == null)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (_isApplying)
+            {
+                return; // ignore pushes that occur while applying undo/redo
+            }
+
+            _undo.Push(action);
+            _redo.Clear();
+        }
+
+        // temporary debug output
+        try
+        {
+            Console.WriteLine($"Pushed action: {action.Description}");
+        }
+        catch
+        {
+            // ignored
+        }
+
+        NotifyStateChanged();
+    }
+
+    /// <summary>
+    /// Small helper to set a property value and register an undo action in one call.
+    /// Usage: myService.StackUndo(owner, newValue, ref myObject.PropertyBackingField, nameof(MyProperty));
+    /// Requires a readable/writable property with the given name on the owner object.
+    /// </summary>
+    /// <typeparam name="T">The type of the property value.</typeparam>
+    /// <param name="owner">The object that owns the property. Used to obtain the PropertyInfo and create the setter.</param>
+    /// <param name="newValue">The new value to assign to the property.</param>
+    /// <param name="actualValue">A reference to the backing field that holds the current value; this will be updated to <paramref name="newValue"/>.</param>
+    /// <param name="propertyName">The name of the property to set on the owner object.</param>
+    /// <returns>The value that was assigned to the backing field (usually <paramref name="newValue"/>).</returns>
+    public T StackUndo<T>(object? owner, T newValue, ref T actualValue, string propertyName)
+    {
+        // compare values
+        if (EqualityComparer<T>.Default.Equals(actualValue, newValue))
+        {
+            return actualValue;
+        }
 
         try
         {
-            ++_cyclicDepth;
-            command.Execute();
+            if (owner != null && !string.IsNullOrEmpty(propertyName))
+            {
+                var prop = owner
+                    .GetType()
+                    .GetProperty(
+                        propertyName,
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic
+                    );
+                if (prop != null && prop.CanWrite)
+                {
+                    // create setter delegate
+                    var setter = ReflectionHelpers.CreateSetter(owner.GetType(), prop, Logger);
+
+                    var action = ActionFactory.CreatePropertyChangeAction(
+                        owner,
+                        prop,
+                        setter,
+                        actualValue,
+                        newValue,
+                        $"{propertyName} Changed",
+                        Logger
+                    );
+                    if (action != null)
+                    {
+                        Push(action);
+                    }
+                    else
+                    {
+                        // fallback: no action created, just assign
+                        actualValue = newValue;
+                        return newValue;
+                    }
+
+                    // apply new value (the action's Redo will reapply if undone)
+                    try
+                    {
+                        // use setter to apply immediately if available
+                        if (setter is Delegate d)
+                        {
+                            d.DynamicInvoke(owner, newValue);
+                        }
+                        else
+                        {
+                            prop.SetValue(owner, newValue);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore apply errors, value will remain changed by direct assignment below
+                    }
+
+                    actualValue = newValue;
+                    return newValue;
+                }
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            --_cyclicDepth;
+            Logger?.LogException(ex);
         }
 
-        if (_cyclicDepth is 0)
-        {
-            if (_transactions.Count > 0)
-            {
-                _transactions.Peek().Add(command);
-            }
-            else
-            {
-                Push(command);
-            }
-        }
+        // fallback: no owner/property found or error -> just assign
+        actualValue = newValue;
+        return newValue;
     }
 
     /// <summary>
-    /// Undoes the last executed <see cref="IUndo"/> command of the manager history.
+    /// Undoes the most recent action, if any.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Cannot perform <see cref="Undo"/> while a group operation is going on.</exception>
-    /// <exception cref="InvalidOperationException">There is no action to undo.</exception>
     public void Undo()
     {
-        if (_transactions.Count > 0)
+        IHistoryAction act = null;
+        lock (_sync)
         {
-            throw new InvalidOperationException(
-                "Cannot perform Undo while a transaction is going on."
-            );
-        }
+            if (_undo.Count == 0)
+            {
+                return;
+            }
 
-        if (!CanUndo)
-        {
-            throw new InvalidOperationException("No operation to undo.");
+            act = _undo.Pop();
         }
 
         try
         {
-            ++_cyclicDepth;
-            Version = _stack.Undo();
+            Console.WriteLine($"Undoing: {act.Description}");
         }
-        finally
+        catch { }
+
+        ExecuteAction(() => act.Undo());
+        lock (_sync)
         {
-            --_cyclicDepth;
+            _redo.Push(act);
         }
+
+        NotifyStateChanged();
     }
 
     /// <summary>
-    /// Redoes the last undone <see cref="IUndo"/> command of the manager history.
+    /// Redoes the most recently undone action, if any.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Cannot perform <see cref="Redo"/> while a group operation is going on.</exception>
-    /// <exception cref="InvalidOperationException">There is no action to redo.</exception>
     public void Redo()
     {
-        if (_transactions.Count > 0)
+        IHistoryAction act = null;
+        lock (_sync)
         {
-            throw new InvalidOperationException(
-                "Cannot perform Redo while a transaction is going on."
-            );
-        }
+            if (_redo.Count == 0)
+            {
+                return;
+            }
 
-        if (!CanRedo)
-        {
-            throw new InvalidOperationException("No operation to redo.");
+            act = _redo.Pop();
         }
 
         try
         {
-            ++_cyclicDepth;
-            Version = _stack.Redo();
+            Console.WriteLine($"Redoing: {act.Description}");
+        }
+        catch { }
+
+        ExecuteAction(() => act.Redo());
+        lock (_sync)
+        {
+            _undo.Push(act);
+        }
+
+        NotifyStateChanged();
+    }
+
+    /// <summary>
+    /// Clears the undo and redo stacks.
+    /// </summary>
+    public void Clear()
+    {
+        lock (_sync)
+        {
+            _undo.Clear();
+            _redo.Clear();
+        }
+
+        NotifyStateChanged();
+    }
+
+    /// <summary>
+    /// Attach an arbitrary object to be tracked (properties + collections recursively).
+    /// </summary>
+    /// <param name="obj">The object to attach for tracking.</param>
+    public void Attach(object obj)
+    {
+        if (obj == null)
+        {
+            return;
+        }
+
+        // prevent recursive attach of the same instance using a weak table to avoid keeping strong references
+        var alreadyAttaching = false;
+        lock (_sync)
+        {
+            alreadyAttaching = _attaching.TryGetValue(obj, out _);
+            if (!alreadyAttaching)
+            {
+                _attaching.Add(obj, DummyObject);
+            }
+        }
+
+        if (alreadyAttaching)
+        {
+            return;
+        }
+
+        try
+        {
+            _tracker.Register(obj);
         }
         finally
         {
-            --_cyclicDepth;
+            lock (_sync)
+            {
+                // ConditionalWeakTable.Remove returns bool in newer frameworks; use Remove to drop entry
+                try
+                {
+                    _attaching.Remove(obj);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
         }
     }
 
-    #endregion
-
-    #region INotifyPropertyChanged
+    /// <summary>
+    /// Detach an object from tracking.
+    /// </summary>
+    /// <param name="obj">The object to detach from tracking.</param>
+    public void Detach(object obj)
+    {
+        _tracker.Unregister(obj);
+    }
 
     /// <summary>
-    /// Occurs when a property value changes.
+    /// Attach a collection instance directly (no need to replace with UndoableCollection).
     /// </summary>
-    public event PropertyChangedEventHandler? PropertyChanged;
+    /// <param name="collection">The collection to attach.</param>
+    public void AttachCollection(INotifyCollectionChanged collection)
+    {
+        if (collection == null)
+        {
+            return;
+        }
 
-    #endregion
+        var alreadyAttaching = false;
+        lock (_sync)
+        {
+            alreadyAttaching = _attaching.TryGetValue(collection, out _);
+            if (!alreadyAttaching)
+            {
+                _attaching.Add(collection, DummyObject);
+            }
+        }
+
+        if (alreadyAttaching)
+        {
+            return;
+        }
+
+        try
+        {
+            AttachCollectionInternal(collection, null);
+        }
+        finally
+        {
+            lock (_sync)
+            {
+                try
+                {
+                    _attaching.Remove(collection);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Detach a previously attached collection.
+    /// </summary>
+    /// <param name="collection">The collection to detach.</param>
+    public void DetachCollection(INotifyCollectionChanged collection)
+    {
+        if (collection == null)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (_collectionSubscriptions.TryGetValue(collection, out var sub))
+            {
+                try
+                {
+                    sub.Dispose();
+                }
+                catch
+                {
+                    // ignore dispose errors
+                }
+
+                _collectionSubscriptions.Remove(collection);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Subscribe to state notifications.
+    /// </summary>
+    /// <param name="observer">Observer that receives state updates.</param>
+    /// <returns>A disposable handle to unsubscribe.</returns>
+    public IDisposable Subscribe(IObserver<UndoRedoState> observer)
+    {
+        if (observer == null)
+        {
+            throw new ArgumentNullException(nameof(observer));
+        }
+
+        lock (_sync)
+        {
+            _observers.Add(observer);
+        }
+
+        observer.OnNext(
+            new UndoRedoState
+            {
+                CanUndo = CanUndo,
+                CanRedo = CanRedo,
+                TopRedoDescription = TopRedoDescription,
+                TopUndoDescription = TopUndoDescription,
+            }
+        );
+
+        return new UndoRedoServiceUnsubscriber(_observers, observer, _sync);
+    }
+
+    /// <summary>
+    /// Centralized method to attach a collection and prevent duplicate subscriptions.
+    /// </summary>
+    /// <param name="collectionInstance">The collection instance to attach.</param>
+    /// <param name="snapshots">The dictionary of snapshots, used by the registration tracker.</param>
+    /// <returns>A disposable subscription, or null if already subscribed or failed.</returns>
+    internal IDisposable AttachCollectionInternal(
+        object collectionInstance,
+        Dictionary<object, List<object>> snapshots
+    )
+    {
+        if (collectionInstance is not INotifyCollectionChanged incc)
+        {
+            return null;
+        }
+
+        lock (_sync)
+        {
+            if (_collectionSubscriptions.ContainsKey(incc))
+            {
+                return null;
+            }
+
+            try
+            {
+                var sub = new CollectionSubscription(incc, this, snapshots, Logger);
+                _collectionSubscriptions[incc] = sub;
+                return sub;
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogException(ex);
+                return null;
+            }
+        }
+    }
+
+    private void ExecuteAction(Action action)
+    {
+        if (action == null)
+        {
+            return;
+        }
+
+        // mark applying
+        lock (_sync)
+        {
+            _isApplying = true;
+        }
+
+        try
+        {
+            action();
+        }
+        finally
+        {
+            // Always clear the applying flag immediately to avoid synchronization issues in test environments.
+            lock (_sync)
+            {
+                _isApplying = false;
+            }
+        }
+    }
+
+    private void NotifyStateChanged()
+    {
+        // Prevent reentrant notifications from causing nested loops or stack overflows.
+        lock (_sync)
+        {
+            if (_isNotifying)
+            {
+                _pendingNotification = true;
+                return;
+            }
+
+            _isNotifying = true;
+            _pendingNotification = false;
+        }
+
+        try
+        {
+            // Loop to flush any pending notifications that occurred while notifying observers.
+            while (true)
+            {
+                var state = new UndoRedoState
+                {
+                    CanUndo = CanUndo,
+                    CanRedo = CanRedo,
+                    TopRedoDescription = TopRedoDescription,
+                    TopUndoDescription = TopUndoDescription,
+                };
+
+                try
+                {
+                    StateChanged?.Invoke(this, state);
+                }
+                catch
+                {
+                    // ignore event handler exceptions
+                }
+
+                List<IObserver<UndoRedoState>> copy;
+                lock (_sync)
+                {
+                    copy = _observers.ToList();
+                }
+
+                foreach (var o in copy)
+                {
+                    try
+                    {
+                        o.OnNext(state);
+                    }
+                    catch
+                    {
+                        // ignore observer exceptions
+                    }
+                }
+
+                lock (_sync)
+                {
+                    if (_pendingNotification)
+                    {
+                        // clear the flag and loop again to emit the latest state
+                        _pendingNotification = false;
+                        continue;
+                    }
+
+                    _isNotifying = false;
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            // ensure flag cleared in case of unexpected exceptions
+            lock (_sync)
+            {
+                _isNotifying = false;
+                _pendingNotification = false;
+            }
+        }
+    }
 }

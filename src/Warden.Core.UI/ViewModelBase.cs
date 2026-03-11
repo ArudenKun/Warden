@@ -7,7 +7,6 @@ using R3;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Timing;
-using Warden.Core.Histories;
 
 namespace Warden.Core;
 
@@ -25,8 +24,6 @@ public abstract partial class ViewModelBase
         ExtraProperties = new ExtraPropertyDictionary();
         this.SetDefaultsForExtraProperties();
     }
-
-    public IHistory History { get; } = new History();
 
     public Type ViewType { get; set; } = null!;
 
