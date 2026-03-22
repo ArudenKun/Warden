@@ -12,7 +12,7 @@ namespace Warden.Core.Modrinth;
 /// <summary>
 /// Extension methods for configuring Refit clients in the service collection.
 /// </summary>
-public static class ServiceCollectionExtensions
+internal static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Configures the Refit clients for dependency injection.
