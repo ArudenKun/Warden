@@ -4,15 +4,12 @@ using Microsoft.Extensions.Logging;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using Volo.Abp;
-using Volo.Abp.BackgroundJobs.Quartz;
-using Volo.Abp.BackgroundWorkers.Quartz;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
-using Volo.Abp.Quartz;
-using Volo.Abp.Timing;
 using Volo.Abp.VirtualFileSystem;
 using Warden.Core;
+using Warden.Core.Modrinth;
 using Warden.Core.Navigation.Extensions;
 using Warden.Core.Settings;
 using Warden.Data;
@@ -21,27 +18,19 @@ using Warden.Utilities;
 
 namespace Warden;
 
-[DependsOn(
-    typeof(AbpBackgroundWorkersQuartzModule),
-    typeof(AbpBackgroundJobsQuartzModule),
-    typeof(WardenCoreModule),
-    typeof(WardenCoreUIModule)
-)]
+[DependsOn(typeof(WardenCoreModule), typeof(WardenCoreUIModule))]
 public sealed class WardenModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddObjectAccessor<TopLevel>();
-
-        PreConfigure<AbpQuartzOptions>(options =>
-            options.Configurator = builder => builder.UseSimpleTypeLoader()
-        );
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddNavigationHost();
-        context.Services.AddSingleton<ILocalizer, AbpLocalizer<WardenResource>>();
+        Configure<ModrinthClientOptions>(options =>
+            options.BaseUrl = ModrinthClientOptions.ProductionUrl
+        );
 
         Configure<SettingsServiceOptions>(options =>
         {
@@ -54,16 +43,14 @@ public sealed class WardenModule : AbpModule
             options.DefaultResourceType = typeof(WardenResource);
         });
 
-        Configure<AbpClockOptions>(options =>
-        {
-            options.Kind = DateTimeKind.Utc;
-        });
-
         context.Services.AddAbpDbContext<WardenDbContext>(options =>
             options.AddDefaultRepositories(true)
         );
 
         ConfigureVirtualFileSystem(context.Services.GetAbpHostEnvironment());
+
+        context.Services.AddNavigationHost();
+        context.Services.AddSingleton<ILocalizer, AbpLocalizer<WardenResource>>();
 
         context.Services.AddSingleton(sp =>
             sp.GetRequiredService<IObjectAccessor<TopLevel>>().Value

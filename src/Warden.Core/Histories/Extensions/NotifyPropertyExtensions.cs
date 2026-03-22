@@ -18,19 +18,22 @@ public static class NotifyPropertyExtensions
         where T : class, INotifyPropertyChanged, INotifyPropertyChanging
     {
         var oldValues = OldValues.GetOrCreateValue(obj);
-        long lastVersion = undoManager.Version;
+        var lastVersion = undoManager.Version;
+        var isUndoRedo = false;
 
         obj.PropertyChanging += OnPropertyChanging;
-        // obj.PropertyChanged += OnPropertyChanged;
+        obj.PropertyChanged += OnPropertyChanged;
 
         return Disposable.Create(() =>
         {
             obj.PropertyChanging -= OnPropertyChanging;
-            // obj.PropertyChanged -= OnPropertyChanged;
+            obj.PropertyChanged -= OnPropertyChanged;
         });
 
         void OnPropertyChanging(object? sender, PropertyChangingEventArgs args)
         {
+            if (isUndoRedo)
+                return;
             if (string.IsNullOrWhiteSpace(args.PropertyName))
                 return;
 
@@ -38,55 +41,54 @@ public static class NotifyPropertyExtensions
             if (property == null || !property.CanRead)
                 return;
 
-            var oldValue = property.GetValue(obj);
-            undoManager.DoOnUndo(() => property.SetValue(obj, oldValue));
-
             // Only store old value if not already stored
-            // if (!oldValues.ContainsKey(args.PropertyName))
-            //     oldValues[args.PropertyName] = property.GetValue(obj);
+            if (!oldValues.ContainsKey(args.PropertyName))
+                oldValues[args.PropertyName] = property.GetValue(obj);
         }
 
-        // void OnPropertyChanged(object? sender, PropertyChangedEventArgs args)
-        // {
-        //     if (string.IsNullOrWhiteSpace(args.PropertyName))
-        //         return;
-        //     if (!oldValues.TryGetValue(args.PropertyName, out var oldValue))
-        //         return;
-        //
-        //     // If version changed, this PropertyChanged comes from undo/redo — skip it
-        //     if (undoManager.Version != lastVersion)
-        //     {
-        //         oldValues.Remove(args.PropertyName);
-        //         lastVersion = undoManager.Version; // sync version
-        //         return;
-        //     }
-        //
-        //     var property = GetProperty(obj.GetType(), args.PropertyName);
-        //     if (property == null || !property.CanRead || !property.CanWrite)
-        //         return;
-        //
-        //     var newValue = property.GetValue(obj);
-        //     if (!Equals(oldValue, newValue))
-        //     {
-        //         undoManager.Do(
-        //             () =>
-        //             {
-        //                 isUndoRedo = true;
-        //                 property.SetValue(obj, newValue);
-        //                 isUndoRedo = false;
-        //             },
-        //             () =>
-        //             {
-        //                 isUndoRedo = true;
-        //                 property.SetValue(obj, oldValue);
-        //                 isUndoRedo = false;
-        //             },
-        //             $"Redo/Undo for {obj.GetType().Name}-{args.PropertyName}"
-        //         );
-        //     }
-        //
-        //     oldValues.Remove(args.PropertyName);
-        // }
+        void OnPropertyChanged(object? sender, PropertyChangedEventArgs args)
+        {
+            if (isUndoRedo)
+                return;
+            if (string.IsNullOrWhiteSpace(args.PropertyName))
+                return;
+            if (!oldValues.TryGetValue(args.PropertyName, out var oldValue))
+                return;
+
+            // If version changed, this PropertyChanged comes from undo/redo — skip it
+            if (undoManager.Version != lastVersion)
+            {
+                oldValues.Remove(args.PropertyName);
+                lastVersion = undoManager.Version; // sync version
+                return;
+            }
+
+            var property = GetProperty(obj.GetType(), args.PropertyName);
+            if (property is null || !property.CanRead || !property.CanWrite)
+                return;
+
+            var newValue = property.GetValue(obj);
+            if (!Equals(oldValue, newValue))
+            {
+                undoManager.Do(
+                    () =>
+                    {
+                        isUndoRedo = true;
+                        property.SetValue(obj, newValue);
+                        isUndoRedo = false;
+                    },
+                    () =>
+                    {
+                        isUndoRedo = true;
+                        property.SetValue(obj, oldValue);
+                        isUndoRedo = false;
+                    },
+                    $"Redo/Undo for {obj.GetType().Name}-{args.PropertyName}"
+                );
+            }
+
+            oldValues.Remove(args.PropertyName);
+        }
     }
 
     private static PropertyInfo? GetProperty(Type type, string name) =>

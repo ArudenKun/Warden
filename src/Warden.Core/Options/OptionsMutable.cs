@@ -68,7 +68,7 @@ internal class OptionsMutable<T> : IOptionsMutable<T>
 
         try
         {
-            T sectionObject = Value;
+            var sectionObject = Value;
             applyChanges(sectionObject);
             await _store.UpdateAsync(section, sectionObject);
             _updatedValue = sectionObject;

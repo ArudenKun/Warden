@@ -6,7 +6,7 @@ namespace Warden.Core.Options;
 /// Used to access or update the value of <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">Options type.</typeparam>
-public interface IOptionsMutable<out T> : IOptionsSnapshot<T>, IOptionsMonitor<T>
+public interface IOptionsMutable<out T> : IOptionsMonitor<T>
     where T : class, new()
 {
     /// <summary>

@@ -10,6 +10,13 @@
     x:DataType="warden:SetupToolsStepViewModel"
     mc:Ignorable="d">
     <StackPanel>
-        <TextBlock Text="Setup Tools View" />
+        <TextBox
+            Text="{Binding Search.Value,
+                           UpdateSourceTrigger=PropertyChanged}"
+            Watermark="Search" />
+        <TextBlock Text="{Binding Result}" />
+        <Button
+            Command="{Binding SubmitCommand}"
+            Content="Submit" />
     </StackPanel>
 </UserControl>

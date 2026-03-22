@@ -24,10 +24,7 @@ public sealed class WardenCoreUIModule : AbpModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        var containerBuilder = context.Services.GetObjectOrNull<ContainerBuilder>();
-        if (containerBuilder is not null)
-            ConfigureInitializer(context.Services.GetContainerBuilder());
-
+        Configure(context.Services.GetContainerBuilder());
         context.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
     }
 
@@ -43,7 +40,7 @@ public sealed class WardenCoreUIModule : AbpModule
         context.ServiceProvider.GetRequiredService<ISettingsService>().Save();
     }
 
-    private static void ConfigureInitializer(ContainerBuilder containerBuilder) =>
+    private static void Configure(ContainerBuilder containerBuilder) =>
         containerBuilder
             .ComponentRegistryBuilder.Events()
             .Registered.Subscribe(args =>

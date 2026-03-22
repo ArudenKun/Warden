@@ -38,7 +38,7 @@ internal sealed class OptionsMutableJsonFileStore<T> : IOptionsMutableStore<T>
             FileAccess.ReadWrite,
             FileShare.None
         );
-        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
+        var buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
         try
         {
 #if NETCOREAPP2_1_OR_GREATER

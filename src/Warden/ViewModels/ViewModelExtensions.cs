@@ -1,7 +1,4 @@
-﻿using R3;
-using Volo.Abp.Data;
-
-namespace Warden.ViewModels;
+﻿namespace Warden.ViewModels;
 
 public static class ViewModelExtensions
 {
